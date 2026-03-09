@@ -1,0 +1,261 @@
+# Forge — Progress Log
+
+## How to Use This File
+Update this at the end of every session.
+Read this at the start of every session before opening Claude Code.
+This file is Claude Code's memory between sessions.
+
+---
+
+## Current Status
+**Phase:** 0 — Not started
+**Last updated:** Day 0
+
+---
+
+## Phase Checklist
+
+### Phase 0 — Environment Setup
+- [x] Claude Code installed (`npm install -g @anthropic-ai/claude-code`)
+- [ ] Next.js project created (`npx create-next-app@latest forge --typescript --tailwind --app`)
+- [x] Dependencies installed (`@anthropic-ai/sdk`, `zod`, `@antigravity/sdk`)
+- [x] `.env.local` created with API keys
+- [x] `.claude/settings.json` created with Agent Teams enabled
+- [x] Foundation documents written (PRD.md, ARCHITECTURE.md, VENTURE_OBJECT.md, CLAUDE.md)
+- [x] Skill folders created under `.claude/skills/`
+
+### Phase 1 — Database
+- [ ] `db/migrations/001_initial.sql` written
+- [ ] `lib/db.ts` — Antigravity DB client
+- [ ] `lib/queries.ts` — typed query helpers
+- [ ] Migration run and tables verified
+
+### Phase 2 — Auth
+- [ ] `app/(auth)/signin/page.tsx`
+- [ ] `app/(auth)/signup/page.tsx`
+- [ ] `middleware.ts` — protecting /dashboard routes
+- [ ] `lib/auth.ts` — getSession(), requireAuth()
+- [ ] Auth flow tested end-to-end
+
+### Phase 3 — UI Shell
+- [ ] `ForgeUI.jsx` dropped into `src/components/`
+- [ ] `app/(dashboard)/layout.tsx` — sidebar with venture tree
+- [ ] `app/(dashboard)/page.tsx` — home state
+- [ ] `app/(dashboard)/venture/[id]/[module]/page.tsx` — workspace
+- [ ] `components/ui/ModulePicker.tsx`
+- [ ] `components/ui/MessageStream.tsx`
+- [ ] `components/ui/ResultCard.tsx`
+- [ ] `components/ui/AgentStatusRow.tsx`
+- [ ] Light/dark mode working
+- [ ] Venture creation + sidebar expand working
+
+### Phase 4 — API Routes
+- [ ] `GET /api/ventures` — list ventures
+- [ ] `POST /api/ventures` — create venture
+- [ ] `GET /api/ventures/[id]` — get venture
+- [ ] `PATCH /api/ventures/[id]` — update name
+- [ ] `DELETE /api/ventures/[id]` — delete venture
+- [ ] `POST /api/ventures/[id]/run` — trigger agent
+- [ ] `GET /api/ventures/[id]/stream/[convId]` — SSE stream
+- [ ] All routes tested with REST client
+
+### Phase 5 — Claude Skills
+- [ ] `npx skills add` — frontend-design installed
+- [ ] `npx skills add` — web-design-guidelines installed
+- [ ] `.claude/skills/architect-agent/SKILL.md`
+- [ ] `.claude/skills/genesis-engine/SKILL.md`
+- [ ] `.claude/skills/identity-architect/SKILL.md`
+- [ ] `.claude/skills/content-factory/SKILL.md`
+- [ ] `.claude/skills/production-pipeline/SKILL.md`
+- [ ] `.claude/skills/deep-validation/SKILL.md`
+
+### Phase 6 — Agents
+- [ ] `src/agents/genesis.ts` — built and tested in isolation
+- [ ] `src/agents/identity.ts` — built and tested with Genesis output
+- [ ] `src/agents/content.ts` — built and tested with Genesis + Identity output
+- [ ] `src/agents/pipeline.ts` — built and tested with all context
+- [ ] `src/agents/feasibility.ts` — built and tested
+- [ ] `src/agents/orchestrator.ts` — Full Launch wired and tested
+
+### Phase 7 — Wire Agents to API
+- [ ] `/run` route calls correct agent per moduleId
+- [ ] Stream output piped to SSE endpoint
+- [ ] Results written to DB on completion
+- [ ] Venture context updated after each agent completes
+
+### Phase 8 — Wire UI to API
+- [ ] Prompt submit calls `/run` and gets conversationId
+- [ ] SSE connection opens for stream
+- [ ] MessageStream component renders lines in real time
+- [ ] AgentStatusRow updates for Full Launch
+- [ ] ResultCard renders on completion
+- [ ] Sidebar updates after run completes
+- [ ] Past conversations load correctly
+
+### Phase 9 — Design QA
+- [ ] web-design-guidelines audit run on all components
+- [ ] frontend-design skill review complete
+- [ ] All findings resolved
+- [ ] Design matches ForgeUI.jsx exactly
+
+### Phase 10 — Polish
+- [ ] Loading skeletons on venture list
+- [ ] Empty state for new users
+- [ ] Error boundary on chat workspace
+- [ ] Retry button on failed runs
+- [ ] Rate limiting on /run endpoint
+- [ ] Agent timeout handling (60s)
+- [ ] Graceful degradation on Full Launch partial failures
+
+### Phase 11 — Deploy
+- [ ] `npm run build` passes with zero errors
+- [ ] `npm run lint` passes clean
+- [ ] Deployed to production via Antigravity
+- [ ] All env vars set in production
+- [ ] Smoke test complete (all 6 modules tested)
+
+---
+
+## Daily Log
+
+### Day 1 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 2 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 3 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 4 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 5 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 6 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 7 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 8 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 9 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 10 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 11 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 12 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 13 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 14 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 15 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Tomorrow:**
+
+---
+
+### Day 16 — [date]
+**Goal:**
+**Built:**
+**Broken:**
+**Commits:**
+**Shipped:** 🚀
