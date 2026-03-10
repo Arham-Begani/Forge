@@ -15,12 +15,12 @@ import { ResultCard } from '@/components/ui/ResultCard'
 // ─── Module metadata (mirrors ModulePicker) ──────────────────────────────────
 
 const MODULES = [
-  { id: 'full-launch', label: 'Full Launch',  accent: '#C4975A', description: 'Run all agents together — research, brand, landing, feasibility', agentName: 'Genesis Engine' },
-  { id: 'research',    label: 'Research',     accent: '#5A8C6E', description: 'Market data, TAM/SAM/SOM, competitors, 10 ranked concepts',          agentName: 'Genesis' },
-  { id: 'branding',    label: 'Branding',     accent: '#5A6E8C', description: 'Brand name, voice, colors, typography, full Brand Bible',              agentName: 'Identity' },
-  { id: 'marketing',   label: 'Marketing',    accent: '#8C5A7A', description: '30-day GTM, 90 social posts, SEO outlines, email sequence',            agentName: 'Content Factory' },
-  { id: 'landing',     label: 'Landing Page', accent: '#8C7A5A', description: 'Sitemap, copy, Next.js component, live deployment',                    agentName: 'Pipeline' },
-  { id: 'feasibility', label: 'Feasibility',  accent: '#7A5A8C', description: 'Financial model, risk matrix, GO/NO-GO verdict',                       agentName: 'Feasibility' },
+  { id: 'full-launch', label: 'Full Launch', accent: '#C4975A', description: 'Run all agents together — research, brand, landing, feasibility', agentName: 'Genesis Engine' },
+  { id: 'research', label: 'Research', accent: '#5A8C6E', description: 'Market data, TAM/SAM/SOM, competitors, 10 ranked concepts', agentName: 'Genesis' },
+  { id: 'branding', label: 'Branding', accent: '#5A6E8C', description: 'Brand name, voice, colors, typography, full Brand Bible', agentName: 'Identity' },
+  { id: 'marketing', label: 'Marketing', accent: '#8C5A7A', description: '30-day GTM, 90 social posts, SEO outlines, email sequence', agentName: 'Content Factory' },
+  { id: 'landing', label: 'Landing Page', accent: '#8C7A5A', description: 'Sitemap, copy, Next.js component, live deployment', agentName: 'Pipeline' },
+  { id: 'feasibility', label: 'Feasibility', accent: '#7A5A8C', description: 'Financial model, risk matrix, GO/NO-GO verdict', agentName: 'Feasibility' },
 ] as const
 
 type ModuleId = typeof MODULES[number]['id']
@@ -32,21 +32,21 @@ function getModule(id: string) {
 // ─── Suggestions ─────────────────────────────────────────────────────────────
 
 const SUGGESTIONS: Record<string, [string, string]> = {
-  'full-launch': ['Launch an async client portal for freelance developers',  'Build a B2B expense tracking tool for remote teams'],
-  'research':    ['Validate an AI writing assistant for solo lawyers',        'Research the market for async video feedback tools'],
-  'branding':    ['Create a brand for a B2B invoice automation startup',      'Build the identity for a wellness app for remote workers'],
-  'marketing':   ['Build a 30-day GTM for a Notion template marketplace',     'Create a social strategy for a SaaS HR onboarding tool'],
-  'landing':     ['Build a landing page for a code review automation tool',   'Deploy a page for an AI meeting notes product'],
-  'feasibility': ['Validate financial model for a subscription recipe app',   'Assess feasibility of a niche job board for designers'],
+  'full-launch': ['Launch an async client portal for freelance developers', 'Build a B2B expense tracking tool for remote teams'],
+  'research': ['Validate an AI writing assistant for solo lawyers', 'Research the market for async video feedback tools'],
+  'branding': ['Create a brand for a B2B invoice automation startup', 'Build the identity for a wellness app for remote workers'],
+  'marketing': ['Build a 30-day GTM for a Notion template marketplace', 'Create a social strategy for a SaaS HR onboarding tool'],
+  'landing': ['Build a landing page for a code review automation tool', 'Deploy a page for an AI meeting notes product'],
+  'feasibility': ['Validate financial model for a subscription recipe app', 'Assess feasibility of a niche job board for designers'],
 }
 
 // ─── Full Launch agent rows ───────────────────────────────────────────────────
 
 const FULL_LAUNCH_AGENTS = [
-  { key: 'research',    label: 'Market Research',    detail: 'Competitor analysis & TAM calc' },
-  { key: 'branding',    label: 'Brand Identity',     detail: 'Generating logos & color palettes' },
-  { key: 'landing',     label: 'Landing Page',       detail: 'Wireframing & Copywriting' },
-  { key: 'feasibility', label: 'Feasibility Check',  detail: 'Legal & Technical risk assessment' },
+  { key: 'research', label: 'Market Research', detail: 'Competitor analysis & TAM calc' },
+  { key: 'branding', label: 'Brand Identity', detail: 'Generating logos & color palettes' },
+  { key: 'landing', label: 'Landing Page', detail: 'Wireframing & Copywriting' },
+  { key: 'feasibility', label: 'Feasibility Check', detail: 'Legal & Technical risk assessment' },
 ]
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -76,33 +76,33 @@ function ModuleIconSvg({ id, size = 20 }: { id: string; size?: number }) {
   switch (id) {
     case 'full-launch': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
       </svg>
     )
     case 'research': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
       </svg>
     )
     case 'branding': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
-        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
       </svg>
     )
     case 'marketing': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+        <path d="M3 11l19-9-9 19-2-8-8-2z" />
       </svg>
     )
     case 'landing': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+        <rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" />
       </svg>
     )
     case 'feasibility': return (
       <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     )
     default: return null
@@ -168,7 +168,7 @@ export default function ModulePage() {
       }
     }
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ventureId, activeModule])
 
   // ── Scroll to bottom when conversations change ──────────────────────────
@@ -367,14 +367,17 @@ export default function ModulePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {FULL_LAUNCH_AGENTS.map(agent => {
                       const s = entry.agentStatuses[agent.key] ?? { status: 'pending', detail: agent.detail }
+                      const agentIdMap: Record<string, any> = {
+                        research: 'genesis',
+                        branding: 'identity',
+                        landing: 'pipeline',
+                        feasibility: 'feasibility'
+                      }
                       return (
                         <AgentStatusRow
                           key={agent.key}
-                          label={agent.label}
-                          status={s.status}
-                          accent={mod.accent}
-                          detail={s.detail}
-                          durationMs={s.durationMs}
+                          agentId={agentIdMap[agent.key]}
+                          status={s.status === 'pending' ? 'waiting' : s.status as any}
                         />
                       )
                     })}
@@ -385,24 +388,19 @@ export default function ModulePage() {
                 {(entry.lines.length > 0 || entry.isRunning) && (
                   <MessageStream
                     lines={entry.lines}
-                    isRunning={entry.isRunning}
-                    accent={mod.accent}
-                    maxHeight={360}
+                    isComplete={!entry.isRunning}
+                    moduleAccent={mod.accent}
                   />
                 )}
 
                 {/* Result */}
                 {entry.result && !entry.isRunning && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-                    {Object.entries(entry.result).slice(0, 6).map(([key, val]) => (
-                      <ResultCard
-                        key={key}
-                        label={key.replace(/([A-Z])/g, ' $1').trim()}
-                        value={val as string | string[] | Record<string, unknown>}
-                        accent={mod.accent}
-                        collapsible={typeof val === 'string' && val.length > 200}
-                      />
-                    ))}
+                  <div style={{ marginTop: 4 }}>
+                    <ResultCard
+                      moduleId={activeModule}
+                      result={entry.result}
+                      deploymentUrl={entry.result.deploymentUrl as string}
+                    />
                   </div>
                 )}
 
@@ -444,7 +442,7 @@ export default function ModulePage() {
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: mod.accent }}>{mod.label}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={mod.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"/>
+                    <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </button>
 
@@ -492,7 +490,7 @@ export default function ModulePage() {
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+                  <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
                 </svg>
               </button>
             </div>

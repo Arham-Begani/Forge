@@ -80,19 +80,19 @@ This file is the Agent's memory between sessions.
 - [x] Integration tests for all models passing
 
 ### Phase 7 — Wire Agents to API
-- [ ] `/run` route calls correct agent per moduleId
-- [ ] Stream output piped to SSE endpoint
-- [ ] Results written to DB on completion
-- [ ] Venture context updated after each agent completes
+- [x] `/run` route calls correct agent per moduleId
+- [x] Stream output piped to SSE endpoint
+- [x] Results written to DB on completion
+- [x] Venture context updated after each agent completes
 
 ### Phase 8 — Wire UI to API
-- [ ] Prompt submit calls `/run` and gets conversationId
-- [ ] SSE connection opens for stream
-- [ ] MessageStream component renders lines in real time
-- [ ] AgentStatusRow updates for Full Launch
-- [ ] ResultCard renders on completion
-- [ ] Sidebar updates after run completes
-- [ ] Past conversations load correctly
+- [x] Prompt submit calls `/run` and gets conversationId
+- [x] SSE connection opens for stream
+- [x] MessageStream component renders lines in real time
+- [x] AgentStatusRow updates for Full Launch
+- [x] ResultCard renders on completion
+- [x] Sidebar updates after run completes (Verified venture context flow)
+- [x] Past conversations load correctly
 
 ### Phase 9 — Design QA
 - [ ] web-design-guidelines audit run on all components
@@ -128,6 +128,8 @@ This file is the Agent's memory between sessions.
 - Built full Silicon Workforce: `genesis`, `identity`, `content`, `pipeline`, `feasibility`, `orchestrator`.
 - Verified 2.5 Pro/Flash model stability via integration tests.
 - Reverted configuration from 3.0 to 2.5 for stability as requested.
+- **Wired Agents to API:** Implemented `/run` and `/stream` SSE endpoints.
+- **Wired UI to API:** Integrated real-time streaming, status updates, and result cards into the dashboard.
 **Broken:** None.
-**Commits:** ~30 individual commits for core foundation and agents.
-**Tomorrow:** Phase 7 — Wiring Agents to API and testing streaming flow.
+**Commits:** Core foundation, agents, and API/UI wiring.
+**Tomorrow:** Phase 9 — Design QA and web-design-guidelines audit.

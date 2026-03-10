@@ -17,7 +17,7 @@ const mockResearch = {
 
 runFeasibilityAgent(
     { ventureId: 'test-456', name: 'FeedFlow', context: { research: mockResearch } },
-    async (chunk) => process.stdout.write(chunk),
+    async (chunk) => { process.stdout.write(chunk) },
     async (result) => {
         console.log('\n\n✓ Verdict:', result.verdict)
         console.log('Timing score:', result.marketTimingScore)

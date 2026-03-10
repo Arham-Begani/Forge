@@ -5,9 +5,17 @@ import {
     createConversation,
     appendStreamLine,
     updateConversationStatus,
+    setConversationResult,
+    updateVentureContext,
 } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { runGenesisAgent } from '@/agents/genesis'
+import { runIdentityAgent } from '@/agents/identity'
+import { runContentAgent } from '@/agents/content'
+import { runPipelineAgent } from '@/agents/pipeline'
+import { runFeasibilityAgent } from '@/agents/feasibility'
+import { runFullLaunch } from '@/agents/orchestrator'
 
 const bodySchema = z.object({
     moduleId: z.enum(['research', 'branding', 'marketing', 'landing', 'feasibility', 'full-launch']),
@@ -21,11 +29,84 @@ async function runAgent(
     prompt: string,
     userId: string
 ) {
-    // TODO: Wire Gemini agents here
-    // For now: simulate a 2-second delay then mark complete
-    await new Promise(r => setTimeout(r, 2000))
-    await appendStreamLine(conversationId, 'Agent wiring coming in Phase 11...')
-    await updateConversationStatus(conversationId, 'complete')
+    const venture = await getVenture(ventureId, userId)
+    if (!venture) throw new Error('Venture not found')
+
+    const ventureInput = {
+        ventureId: venture.id,
+        name: `${venture.name}: ${prompt}`,
+        context: venture.context as unknown as Record<string, unknown>,
+    }
+
+    const onStream = async (chunk: string) => {
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+            if (line.trim()) await appendStreamLine(conversationId, line)
+        }
+    }
+
+    const onAgentStatus = async (agentId: string, status: string) => {
+        await appendStreamLine(conversationId, `__STATUS__${agentId}:${status}`)
+    }
+
+    try {
+        switch (moduleId) {
+            case 'research':
+                await runGenesisAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'research', result)
+                    await setConversationResult(conversationId, result)
+                })
+                break
+
+            case 'branding':
+                await runIdentityAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'branding', result)
+                    await setConversationResult(conversationId, result)
+                })
+                break
+
+            case 'marketing':
+                await runContentAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'marketing', result)
+                    await setConversationResult(conversationId, result)
+                })
+                break
+
+            case 'landing':
+                await runPipelineAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'landing', result)
+                    await setConversationResult(conversationId, result)
+                })
+                break
+
+            case 'feasibility':
+                await runFeasibilityAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'feasibility', result)
+                    await setConversationResult(conversationId, result)
+                })
+                break
+
+            case 'full-launch':
+                await runFullLaunch(ventureInput, onStream, onAgentStatus, async (result) => {
+                    if (result.research) await updateVentureContext(ventureId, 'research', result.research)
+                    if (result.branding) await updateVentureContext(ventureId, 'branding', result.branding)
+                    if (result.landing) await updateVentureContext(ventureId, 'landing', result.landing)
+                    if (result.feasibility) await updateVentureContext(ventureId, 'feasibility', result.feasibility)
+                    await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
+                })
+                break
+
+            default:
+                throw new Error(`Unknown moduleId: ${moduleId}`)
+        }
+
+        await updateConversationStatus(conversationId, 'complete')
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        await appendStreamLine(conversationId, `\n[Error: ${message}]`)
+        await updateConversationStatus(conversationId, 'failed')
+    }
 }
 
 export async function POST(

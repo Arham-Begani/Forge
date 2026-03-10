@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(grep \"\"version\"\":*)",
+      "Bash(curl:*)"
     ]
   }
 }

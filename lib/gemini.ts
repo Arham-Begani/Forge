@@ -20,7 +20,7 @@ export function getFlashModel(): GenerativeModel {
 export function getFlashModelWithSearch(): GenerativeModel {
     return genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
-        tools: [{ googleSearch: {} }],
+        tools: [{ googleSearchRetrieval: {} }],
         generationConfig: {
             temperature: 0.4,   // lower temp for factual research
             topP: 0.9,

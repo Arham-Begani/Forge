@@ -40,9 +40,19 @@ export async function GET(
 
                     // Send any new stream lines
                     const newLines = conv.stream_output.slice(lastLineIndex)
-                    newLines.forEach((line, i) => {
-                        send({ type: 'line', content: line, index: lastLineIndex + i })
-                    })
+                    let i = 0
+                    for (const line of newLines) {
+                        if (line.startsWith('__STATUS__')) {
+                            const rest = line.replace('__STATUS__', '')
+                            const colonIdx = rest.indexOf(':')
+                            const agentId = rest.slice(0, colonIdx)
+                            const status = rest.slice(colonIdx + 1)
+                            send({ type: 'agent-status', agentId, status })
+                        } else {
+                            send({ type: 'line', content: line, index: lastLineIndex + i })
+                        }
+                        i++
+                    }
                     lastLineIndex = conv.stream_output.length
 
                     // Check for completion
