@@ -8,7 +8,7 @@ import {
   type FormEvent,
 } from 'react'
 import { useParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AgentStatusRow } from '@/components/ui/AgentStatusRow'
 import { MessageStream } from '@/components/ui/MessageStream'
 import { ResultCard } from '@/components/ui/ResultCard'
@@ -117,21 +117,17 @@ export default function ModulePage() {
   const ventureId = params.id as string
   const moduleParam = params.module as string
 
-  // Active module (picker can change it without navigation)
   const [activeModule, setActiveModule] = useState<ModuleId>(moduleParam as ModuleId)
   const mod = getModule(activeModule)
   const suggestions = SUGGESTIONS[activeModule] ?? SUGGESTIONS['research']
 
-  // Venture name
   const [ventureName, setVentureName] = useState<string>('...')
-
-  // Conversation history
   const [conversations, setConversations] = useState<ConversationEntry[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)
 
-  // Input
   const [prompt, setPrompt] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [inputFocused, setInputFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const chatAreaRef = useRef<HTMLDivElement>(null)
@@ -145,7 +141,6 @@ export default function ModulePage() {
         const data = await res.json()
         setVentureName(data.name ?? 'Venture')
 
-        // Build history entries for this module
         const moduleConvos: ConversationEntry[] = (
           data.conversations?.[activeModule] ?? []
         ).map((c: {
@@ -172,12 +167,10 @@ export default function ModulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ventureId, activeModule])
 
-  // ── Scroll to bottom when conversations change ──────────────────────────
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversations])
 
-  // ── Submit ──────────────────────────────────────────────────────────────
   async function handleSubmit(e?: FormEvent) {
     e?.preventDefault()
     const text = prompt.trim()
@@ -188,7 +181,6 @@ export default function ModulePage() {
 
     const entryId = crypto.randomUUID()
 
-    // Append user message + empty agent entry immediately
     const newEntry: ConversationEntry = {
       conversationId: entryId,
       prompt: text,
@@ -201,7 +193,6 @@ export default function ModulePage() {
     setConversations(prev => [...prev, newEntry])
 
     try {
-      // 1. POST to start run
       const runRes = await fetch(`/api/ventures/${ventureId}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,7 +201,6 @@ export default function ModulePage() {
       if (!runRes.ok) throw new Error('Failed to start run')
       const { conversationId: serverConversationId } = await runRes.json()
 
-      // Define updateEntry *after* we get the final conversationId so its closure captures it
       function updateEntry(patch: Partial<ConversationEntry> | ((e: ConversationEntry) => Partial<ConversationEntry>)) {
         setConversations(prev => prev.map(c => {
           if (c.conversationId !== serverConversationId && c.conversationId !== entryId) return c
@@ -219,12 +209,10 @@ export default function ModulePage() {
         }))
       }
 
-      // Update with real conversationId
       setConversations(prev => prev.map(c =>
         c.conversationId === entryId ? { ...c, conversationId: serverConversationId } : c
       ))
 
-      // 2. Open SSE stream
       const es = new EventSource(`/api/ventures/${ventureId}/stream/${serverConversationId}`)
 
       es.addEventListener('message', (e: MessageEvent) => {
@@ -261,10 +249,10 @@ export default function ModulePage() {
       })
 
     } catch {
-       setConversations(prev => prev.map(c => {
-          if (c.conversationId !== entryId) return c
-          return { ...c, isRunning: false, isError: true }
-       }))
+      setConversations(prev => prev.map(c => {
+        if (c.conversationId !== entryId) return c
+        return { ...c, isRunning: false, isError: true }
+      }))
       setIsSubmitting(false)
     }
   }
@@ -282,102 +270,161 @@ export default function ModulePage() {
     textareaRef.current?.focus()
   }
 
-  // ── Module picker inline selector ────────────────────────────────────────
   const [pickerOpen, setPickerOpen] = useState(false)
-
   const hasMessages = conversations.length > 0 && historyLoaded
 
+  const canSubmit = !!prompt.trim() && !isSubmitting
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', position: 'relative' }}>
+
+      {/* Ambient background orb */}
+      <div style={{
+        position: 'fixed',
+        width: 400,
+        height: 400,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${mod.accent}18 0%, transparent 70%)`,
+        filter: 'blur(80px)',
+        top: -100,
+        right: -80,
+        pointerEvents: 'none',
+        zIndex: 0,
+        animation: 'blob-float 18s ease-in-out infinite',
+      }} />
 
       {/* ── Header ── */}
-      <header style={headerStyle}>
+      <motion.header
+        style={headerStyle}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
+        {/* Accent top line */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, background: `linear-gradient(90deg, ${mod.accent}40, ${mod.accent}80, ${mod.accent}40)` }} />
+
         <div className="flex items-center gap-3">
-          <div style={{ ...headerIconStyle, background: `${mod.accent}18`, color: mod.accent }}>
+          <motion.div
+            style={{ ...headerIconStyle, background: `${mod.accent}18`, color: mod.accent }}
+            whileHover={{ scale: 1.05 }}
+          >
             <ModuleIconSvg id={activeModule} size={18} />
-          </div>
+          </motion.div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
               {mod.label}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, letterSpacing: '0.01em' }}>
               {ventureName}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span style={agentBadgeStyle(mod.accent)}>{mod.agentName}</span>
+          <motion.span
+            style={agentBadgeStyle(mod.accent)}
+            whileHover={{ scale: 1.04 }}
+          >
+            {mod.agentName}
+          </motion.span>
         </div>
-      </header>
+      </motion.header>
 
       {/* ── Chat area ── */}
       <div
         ref={chatAreaRef}
         className="flex-1 overflow-y-auto w-full"
+        style={{ position: 'relative', zIndex: 1 }}
       >
         <div style={chatInnerStyle}>
 
           {/* Empty state */}
-          {!hasMessages && historyLoaded && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              style={emptyStateStyle}
-            >
-              <div style={{ color: mod.accent, marginBottom: 16 }}>
-                <ModuleIconSvg id={activeModule} size={32} />
-              </div>
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>
-                {mod.label}
-              </h2>
-              <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 24px', textAlign: 'center', maxWidth: 360 }}>
-                {mod.description}
-              </p>
-              <motion.div 
-                className="flex gap-2 flex-wrap justify-center"
-                initial="hidden"
-                animate="show"
-                variants={{
-                  hidden: { opacity: 0 },
-                  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-                }}
+          <AnimatePresence>
+            {!hasMessages && historyLoaded && (
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                style={emptyStateStyle}
               >
-                {suggestions.map(s => (
-                  <motion.button
-                    key={s}
-                    variants={{
-                      hidden: { opacity: 0, y: 10 },
-                      show: { opacity: 1, y: 0 }
+                {/* Icon with glow ring */}
+                <div style={{ position: 'relative', marginBottom: 20 }}>
+                  <div style={{
+                    position: 'absolute', inset: -16,
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${mod.accent}20 0%, transparent 70%)`,
+                    filter: 'blur(12px)',
+                    animation: 'glow-pulse 3s ease-in-out infinite',
+                  }} />
+                  <motion.div
+                    style={{
+                      width: 64, height: 64, borderRadius: 18,
+                      background: `${mod.accent}14`,
+                      border: `1px solid ${mod.accent}30`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: mod.accent,
+                      position: 'relative', zIndex: 1,
+                      boxShadow: `0 8px 24px ${mod.accent}20`,
                     }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => { setPrompt(s); textareaRef.current?.focus() }}
-                    style={chipStyle(mod.accent)}
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    {s}
-                  </motion.button>
-                ))}
+                    <ModuleIconSvg id={activeModule} size={28} />
+                  </motion.div>
+                </div>
+
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                  {mod.label}
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 28px', textAlign: 'center', maxWidth: 360, lineHeight: 1.7 }}>
+                  {mod.description}
+                </p>
+
+                {/* Suggestion chips */}
+                <motion.div
+                  className="flex gap-2 flex-wrap justify-center"
+                  initial="hidden"
+                  animate="show"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                  }}
+                >
+                  {suggestions.map(s => (
+                    <motion.button
+                      key={s}
+                      variants={{
+                        hidden: { opacity: 0, y: 12, scale: 0.95 },
+                        show: { opacity: 1, y: 0, scale: 1 }
+                      }}
+                      whileHover={{ scale: 1.04, y: -1, boxShadow: `0 4px 16px ${mod.accent}20` }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => { setPrompt(s); textareaRef.current?.focus() }}
+                      style={chipStyle(mod.accent)}
+                    >
+                      {s}
+                    </motion.button>
+                  ))}
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
+            )}
+          </AnimatePresence>
 
           {/* Conversations */}
-          {conversations.map(entry => (
-            <motion.div 
-              key={entry.conversationId} 
-              initial={{ opacity: 0, scale: 0.98, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ marginBottom: 32 }}
+          {conversations.map((entry, i) => (
+            <motion.div
+              key={entry.conversationId}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: i === conversations.length - 1 ? 0 : 0 }}
+              style={{ marginBottom: 36 }}
             >
-
               {/* User message */}
-              <div className="flex justify-end" style={{ marginBottom: 16 }}>
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
+              <div className="flex justify-end" style={{ marginBottom: 18 }}>
+                <motion.div
+                  initial={{ opacity: 0, x: 16, scale: 0.97 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
                   style={userBubbleStyle}
                 >
                   {entry.prompt}
@@ -385,23 +432,41 @@ export default function ModulePage() {
               </div>
 
               {/* Agent response */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {/* Avatar + agent name */}
-                <div className="flex items-center gap-2">
-                  <div style={{ ...avatarStyle, background: `${mod.accent}18`, color: mod.accent }}>
+                <motion.div
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.12 }}
+                >
+                  <div style={{
+                    ...avatarStyle,
+                    background: `${mod.accent}18`,
+                    color: mod.accent,
+                    border: `1px solid ${mod.accent}30`,
+                    boxShadow: `0 0 8px ${mod.accent}20`,
+                  }}>
                     <ModuleIconSvg id={activeModule} size={14} />
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                     {mod.agentName}
                   </span>
-                </div>
+                  {entry.isRunning && (
+                    <div className="flex gap-1 items-center" style={{ marginLeft: 4 }}>
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                    </div>
+                  )}
+                </motion.div>
 
                 {/* Full Launch: status rows + stream */}
                 {activeModule === 'full-launch' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {FULL_LAUNCH_AGENTS.map(agent => {
                       const s = entry.agentStatuses[agent.key] ?? { status: 'pending', detail: agent.detail }
-                      const agentIdMap: Record<string, any> = {
+                      const agentIdMap: Record<string, string> = {
                         research: 'genesis',
                         branding: 'identity',
                         landing: 'pipeline',
@@ -411,7 +476,7 @@ export default function ModulePage() {
                         <AgentStatusRow
                           key={agent.key}
                           agentId={agentIdMap[agent.key]}
-                          status={s.status === 'pending' ? 'waiting' : s.status as any}
+                          status={s.status === 'pending' ? 'waiting' : s.status as 'waiting' | 'running' | 'complete' | 'failed'}
                         />
                       )
                     })}
@@ -429,29 +494,41 @@ export default function ModulePage() {
 
                 {/* Result */}
                 {entry.result && !entry.isRunning && (
-                  <div style={{ marginTop: 4 }}>
+                  <motion.div
+                    style={{ marginTop: 4 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
                     <ResultCard
                       moduleId={activeModule}
                       result={entry.result}
                       deploymentUrl={entry.result.deploymentUrl as string}
                     />
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Error state */}
                 {entry.isError && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     style={errorBoxStyle}
                   >
-                    <span style={{ fontSize: 13, color: '#dc2626' }}>Something went wrong.</span>
-                    <button
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05252" strokeWidth="2.5" strokeLinecap="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <span style={{ fontSize: 13, color: '#e05252', fontWeight: 500 }}>Something went wrong.</span>
+                    </div>
+                    <motion.button
                       onClick={() => retryEntry(entry)}
                       style={retryBtnStyle}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
                     >
                       Try Again
-                    </button>
+                    </motion.button>
                   </motion.div>
                 )}
               </div>
@@ -463,48 +540,79 @@ export default function ModulePage() {
       </div>
 
       {/* ── Input area ── */}
-      <div style={inputAreaStyle}>
+      <motion.div
+        style={inputAreaStyle}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
         <div style={inputInnerStyle}>
           <form onSubmit={handleSubmit}>
-            <div style={inputWrapStyle}>
-
-              {/* Module picker pill (top-left inside input) */}
+            <motion.div
+              style={{
+                ...inputWrapStyle,
+                borderColor: inputFocused ? mod.accent : 'var(--glass-border)',
+                boxShadow: inputFocused
+                  ? `var(--shadow-lg), 0 0 0 3px ${mod.accent}18`
+                  : 'var(--shadow-md)',
+              }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Module picker pill */}
               <div style={{ position: 'relative' }}>
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setPickerOpen(p => !p)}
                   style={modulePickerPillStyle(mod.accent)}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                 >
                   <span style={{ color: mod.accent, display: 'flex', alignItems: 'center' }}>
                     <ModuleIconSvg id={activeModule} size={13} />
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: mod.accent }}>{mod.label}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={mod.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <span style={{ fontSize: 11, fontWeight: 700, color: mod.accent }}>{mod.label}</span>
+                  <motion.svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={mod.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    animate={{ rotate: pickerOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
+                  </motion.svg>
+                </motion.button>
 
                 {/* Dropdown */}
-                {pickerOpen && (
-                  <div style={pickerDropdownStyle}>
-                    {MODULES.map(m => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => { setActiveModule(m.id as ModuleId); setPickerOpen(false) }}
-                        style={{
-                          ...pickerOptionStyle,
-                          background: m.id === activeModule ? `${m.accent}12` : 'transparent',
-                        }}
-                      >
-                        <span style={{ color: m.accent, display: 'flex', alignItems: 'center' }}>
-                          <ModuleIconSvg id={m.id} size={13} />
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--text)' }}>{m.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <AnimatePresence>
+                  {pickerOpen && (
+                    <motion.div
+                      style={pickerDropdownStyle}
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                    >
+                      {MODULES.map(m => (
+                        <motion.button
+                          key={m.id}
+                          type="button"
+                          onClick={() => { setActiveModule(m.id as ModuleId); setPickerOpen(false) }}
+                          style={{
+                            ...pickerOptionStyle,
+                            background: m.id === activeModule ? `${m.accent}12` : 'transparent',
+                          }}
+                          whileHover={{ backgroundColor: `${m.accent}10`, x: 2 }}
+                        >
+                          <span style={{ color: m.accent, display: 'flex', alignItems: 'center' }}>
+                            <ModuleIconSvg id={m.id} size={13} />
+                          </span>
+                          <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: m.id === activeModule ? 600 : 400 }}>{m.label}</span>
+                          {m.id === activeModule && (
+                            <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.accent, marginLeft: 'auto' }} />
+                          )}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Textarea */}
@@ -513,32 +621,45 @@ export default function ModulePage() {
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Ask ${mod.label} anything about your venture...`}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                placeholder={`Ask ${mod.label} anything about your venture…`}
                 rows={1}
                 style={textareaStyle}
               />
 
-              {/* Send button (bottom-right) */}
+              {/* Send button */}
               <motion.button
                 type="submit"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled={!prompt.trim() || isSubmitting}
+                whileHover={canSubmit ? { scale: 1.08 } : {}}
+                whileTap={canSubmit ? { scale: 0.92 } : {}}
+                disabled={!canSubmit}
                 style={{
                   ...sendBtnStyle,
-                  background: !prompt.trim() || isSubmitting ? 'var(--border)' : mod.accent,
+                  background: canSubmit
+                    ? `linear-gradient(135deg, ${mod.accent}, ${mod.accent}cc)`
+                    : 'var(--border)',
+                  boxShadow: canSubmit ? `0 4px 12px ${mod.accent}40` : 'none',
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-                </svg>
+                {isSubmitting ? (
+                  <motion.div
+                    style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                  />
+                ) : (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
+                  </svg>
+                )}
               </motion.button>
-            </div>
+            </motion.div>
 
             <p style={hintStyle}>⌘↵ to run · Shift↵ for new line</p>
           </form>
         </div>
-      </div>
+      </motion.div>
 
       {/* Click-away for picker */}
       {pickerOpen && (
@@ -568,20 +689,24 @@ function buildCompletedStatuses(_accent: string): Record<string, AgentState> {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const headerStyle: React.CSSProperties = {
-  height: 56,
+  height: 54,
   padding: '0 24px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
   borderBottom: '1px solid var(--border)',
-  background: 'var(--sidebar)',
+  background: 'var(--glass-bg-strong)',
+  backdropFilter: 'blur(24px)',
+  WebkitBackdropFilter: 'blur(24px)',
   flexShrink: 0,
+  position: 'relative',
+  zIndex: 10,
 }
 
 const headerIconStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 8,
+  width: 36,
+  height: 36,
+  borderRadius: 10,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -591,20 +716,21 @@ const headerIconStyle: React.CSSProperties = {
 function agentBadgeStyle(accent: string): React.CSSProperties {
   return {
     fontSize: 11,
-    fontWeight: 600,
+    fontWeight: 700,
     color: accent,
-    background: `${accent}14`,
-    border: `1px solid ${accent}30`,
+    background: `${accent}12`,
+    border: `1px solid ${accent}28`,
     borderRadius: 20,
-    padding: '3px 10px',
+    padding: '4px 12px',
     letterSpacing: '0.02em',
+    boxShadow: `0 2px 8px ${accent}18`,
   }
 }
 
 const chatInnerStyle: React.CSSProperties = {
-  maxWidth: 660,
+  maxWidth: 780,
   margin: '0 auto',
-  padding: '32px 24px 24px',
+  padding: '32px 24px 32px',
   width: '100%',
 }
 
@@ -621,26 +747,30 @@ function chipStyle(accent: string): React.CSSProperties {
   return {
     fontSize: 12,
     color: accent,
-    background: `${accent}10`,
-    border: `1px solid ${accent}25`,
+    background: `${accent}0d`,
+    border: `1px solid ${accent}22`,
     borderRadius: 20,
-    padding: '6px 14px',
+    padding: '7px 16px',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    transition: 'background 150ms',
+    transition: 'background 150ms, box-shadow 150ms',
+    fontWeight: 500,
   }
 }
 
 const userBubbleStyle: React.CSSProperties = {
-  maxWidth: '80%',
+  maxWidth: '78%',
   fontSize: 14,
   color: 'var(--text)',
-  background: 'var(--card)',
-  border: '1px solid var(--border)',
-  boxShadow: 'var(--shadow-subtle)',
+  background: 'var(--glass-bg-strong)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid var(--glass-border)',
+  boxShadow: 'var(--shadow-sm)',
   borderRadius: '20px 20px 4px 20px',
   padding: '12px 18px',
-  lineHeight: 1.5,
+  lineHeight: 1.6,
+  letterSpacing: '0.01em',
 }
 
 const avatarStyle: React.CSSProperties = {
@@ -656,53 +786,55 @@ const avatarStyle: React.CSSProperties = {
 const errorBoxStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'space-between',
   gap: 12,
-  padding: '10px 14px',
-  background: '#dc262608',
-  border: '1px solid #dc262620',
-  borderRadius: 8,
+  padding: '12px 16px',
+  background: 'rgba(220, 38, 38, 0.06)',
+  border: '1px solid rgba(220, 38, 38, 0.18)',
+  borderRadius: 12,
 }
 
 const retryBtnStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 500,
-  color: '#dc2626',
+  fontWeight: 600,
+  color: '#e05252',
   background: 'transparent',
-  border: '1px solid #dc262630',
-  borderRadius: 6,
-  padding: '4px 10px',
+  border: '1px solid rgba(220, 38, 38, 0.25)',
+  borderRadius: 8,
+  padding: '5px 12px',
   cursor: 'pointer',
   fontFamily: 'inherit',
+  flexShrink: 0,
 }
 
 const inputAreaStyle: React.CSSProperties = {
-  background: 'transparent',
-  padding: '16px 24px 24px',
+  background: 'var(--glass-bg-strong)',
+  backdropFilter: 'blur(28px)',
+  WebkitBackdropFilter: 'blur(28px)',
+  borderTop: '1px solid var(--border)',
+  padding: '14px 24px 22px',
   flexShrink: 0,
   zIndex: 10,
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  right: 0,
+  position: 'relative',
 }
 
 const inputInnerStyle: React.CSSProperties = {
-  maxWidth: 660,
+  maxWidth: 780,
   margin: '0 auto',
 }
 
 const inputWrapStyle: React.CSSProperties = {
   background: 'var(--glass-bg)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
   border: '1px solid var(--glass-border)',
-  boxShadow: 'var(--shadow-premium)',
-  borderRadius: 20,
+  borderRadius: 18,
   padding: '12px 16px',
   display: 'flex',
   flexDirection: 'column',
   gap: 10,
   position: 'relative',
+  transition: 'border-color 250ms ease, box-shadow 250ms ease',
 }
 
 function modulePickerPillStyle(accent: string): React.CSSProperties {
@@ -710,26 +842,29 @@ function modulePickerPillStyle(accent: string): React.CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 5,
-    padding: '4px 8px',
+    padding: '5px 10px',
     borderRadius: 20,
-    border: `1px solid ${accent}30`,
-    background: `${accent}10`,
+    border: `1px solid ${accent}28`,
+    background: `${accent}0d`,
     cursor: 'pointer',
     fontFamily: 'inherit',
+    transition: 'background 150ms',
   }
 }
 
 const pickerDropdownStyle: React.CSSProperties = {
   position: 'absolute',
-  top: 'calc(100% + 6px)',
+  top: 'calc(100% + 8px)',
   left: 0,
-  background: 'var(--card)',
-  border: '1px solid var(--border)',
-  borderRadius: 10,
-  padding: 4,
+  background: 'var(--glass-bg-strong)',
+  backdropFilter: 'blur(32px)',
+  WebkitBackdropFilter: 'blur(32px)',
+  border: '1px solid var(--glass-border)',
+  borderRadius: 14,
+  padding: 6,
   zIndex: 20,
-  minWidth: 180,
-  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  minWidth: 190,
+  boxShadow: 'var(--shadow-xl)',
 }
 
 const pickerOptionStyle: React.CSSProperties = {
@@ -737,8 +872,8 @@ const pickerOptionStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 8,
   width: '100%',
-  padding: '7px 10px',
-  borderRadius: 6,
+  padding: '8px 10px',
+  borderRadius: 8,
   border: 'none',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -755,29 +890,30 @@ const textareaStyle: React.CSSProperties = {
   color: 'var(--text)',
   fontFamily: 'inherit',
   resize: 'none',
-  lineHeight: 1.5,
+  lineHeight: 1.55,
   padding: 0,
 }
 
 const sendBtnStyle: React.CSSProperties = {
   alignSelf: 'flex-end',
-  width: 32,
-  height: 32,
-  borderRadius: 8,
+  width: 34,
+  height: 34,
+  borderRadius: 10,
   border: 'none',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
-  transition: 'background 150ms',
+  transition: 'background 200ms, box-shadow 200ms',
 }
 
 const hintStyle: React.CSSProperties = {
   fontSize: 11,
   color: 'var(--muted)',
   fontFamily: "'JetBrains Mono', monospace",
-  margin: '6px 0 0',
+  margin: '7px 0 0',
   textAlign: 'center',
-  opacity: 0.7,
+  opacity: 0.6,
+  letterSpacing: '0.01em',
 }
