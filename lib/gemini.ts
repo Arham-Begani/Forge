@@ -20,7 +20,7 @@ export function getFlashModel(): GenerativeModel {
 export function getFlashModelWithSearch(): GenerativeModel {
     return genAI.getGenerativeModel({
         model: 'gemini-3-flash-preview',
-        tools: [{ googleSearch: {} }],
+        tools: [{ googleSearch: {} } as any],
         generationConfig: {
             temperature: 0.4,   // lower temp for factual research
             topP: 0.9,
@@ -30,9 +30,9 @@ export function getFlashModelWithSearch(): GenerativeModel {
 }
 
 // Pro model with thinking — used by Feasibility and Full Launch Architect
-export function getProModelWithThinking(thinkingBudget: number = 8000): GenerativeModel {
+export function getProModelWithThinking(thinkingBudget: number = 8000, modelId: string = 'gemini-3-pro'): GenerativeModel {
     return genAI.getGenerativeModel({
-        model: 'gemini-3-pro',
+        model: modelId,
         generationConfig: {
             temperature: 0.6,
             topP: 0.95,
