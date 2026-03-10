@@ -164,14 +164,14 @@ Output ONLY the JSON — no markdown fences, no explanation after.
 // ── Agent Runner ──────────────────────────────────────────────────────────────
 
 export async function runGenesisAgent(
-    venture: { ventureId: string; name: string; context: Record<string, unknown> },
+    venture: { ventureId: string; name: string; globalIdea?: string; context: Record<string, unknown> },
     onStream: (line: string) => Promise<void>,
     onComplete: (result: GenesisOutput) => Promise<void>
 ): Promise<void> {
-    const userMessage = `
 Research this venture concept thoroughly using Google Search.
     Find real, current market data with citations.
-Venture concept: ${venture.name}
+
+${venture.globalIdea ? `Global Startup Vision: ${venture.globalIdea}\n` : ''}Specific Venture Focus: ${venture.name}
 
 Run at minimum 8 distinct searches covering:
 1. Pain points and frustrations in this space
@@ -181,7 +181,6 @@ Run at minimum 8 distinct searches covering:
 5. Reddit and community discussions about this problem
 
 Then output your full GenesisOutput JSON.
-`
 
     const run = async () => {
         const model = getFlashModelWithSearch()
