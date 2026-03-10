@@ -140,7 +140,7 @@ export default function DashboardPage() {
           {/* Skeleton Grid */}
           <div style={gridStyle}>
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="glass-card" style={{ ...projectCardStyle, border: 'none', shadow: 'none', pointerEvents: 'none' }}>
+              <div key={i} className="glass-card" style={{ ...projectCardStyle, border: 'none', pointerEvents: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ width: 46, height: 46, borderRadius: 13 }} className="skeleton" />
                   <div style={{ width: 40, height: 12, borderRadius: 4, opacity: 0.5 }} className="skeleton" />
@@ -259,7 +259,7 @@ export default function DashboardPage() {
   }
 
   // ── Empty state ─────────────────────────────────────────────────────────────
-  if (!projects.length && !ventures.length) {
+  if (!projects.length) {
     return (
       <div style={pageStyle}>
         <div style={ambientBlob1} />
@@ -318,203 +318,201 @@ export default function DashboardPage() {
   return (
     <ErrorBoundary>
       <div style={pageStyle}>
-      {/* Ambient background blobs */}
-      <div style={ambientBlob1} />
-      <div style={ambientBlob2} />
+        {/* Ambient background blobs */}
+        <div style={ambientBlob1} />
+        <div style={ambientBlob2} />
 
-      <div style={contentStyle}>
-        {/* Hero */}
-        <motion.div
-          style={heroStyle}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <h1 style={heroHeadingStyle}>
-            <span className="gradient-text">Command Center</span>
-          </h1>
-          <p style={heroSubStyle}>
-            {projects.length} project{projects.length !== 1 ? 's' : ''} · {ventures.length} venture{ventures.length !== 1 ? 's' : ''}
-          </p>
-        </motion.div>
+        <div style={contentStyle}>
+          {/* Hero */}
+          <motion.div
+            style={heroStyle}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <h1 style={heroHeadingStyle}>
+              <span className="gradient-text">Command Center</span>
+            </h1>
+            <p style={heroSubStyle}>
+              {projects.length} project{projects.length !== 1 ? 's' : ''}
+            </p>
+          </motion.div>
 
-        {/* Quick actions */}
-        <motion.div
-          style={quickActionsStyle}
-          initial="hidden" animate="show"
-          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.07 } } }}
-        >
-          {QUICK_ACTIONS.map(a => (
-            <motion.button
-              key={a.action}
-              variants={{ hidden: { opacity: 0, y: 10, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1 } }}
-              whileHover={{ scale: 1.04, y: -1, boxShadow: 'var(--shadow-md)' }}
-              whileTap={{ scale: 0.96 }}
-              style={quickActionBtnStyle}
-              onClick={() => {
-                if (a.action === 'new-project') window.dispatchEvent(new CustomEvent('forge:new-project'))
-              }}
-            >
-              <span style={{ fontSize: 15 }}>{a.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{a.label}</span>
-            </motion.button>
-          ))}
-        </motion.div>
-
-        {/* Stats bar */}
-        <motion.div
-          className="glass"
-          style={statsBarStyle}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <StatItem label="Projects" value={projects.length} delay={0.2} />
-          <div style={statDivider} />
-          <StatItem label="Ventures" value={ventures.length} delay={0.28} />
-          <div style={statDivider} />
-          <StatItem label="Modules" value={MODULES.length} delay={0.36} />
-          <div style={statDivider} />
-          <StatItem label="AI Agents" value={6} delay={0.44} />
-        </motion.div>
-
-        {/* Project grid */}
-        <motion.div
-          style={gridStyle}
-          initial="hidden" animate="show"
-          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.09 } } }}
-        >
-          {projects.map(proj => {
-            const ventureCount = getVentureCount(proj.id)
-            const isHovered = hoveredProject === proj.id
-            return (
+          {/* Quick actions */}
+          <motion.div
+            style={quickActionsStyle}
+            initial="hidden" animate="show"
+            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.07 } } }}
+          >
+            {QUICK_ACTIONS.map(a => (
               <motion.button
-                key={proj.id}
-                variants={{
-                  hidden: { opacity: 0, y: 24, scale: 0.96 },
-                  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 280, damping: 22 } }
-                }}
-                whileHover={{ scale: 1.025, y: -3 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => router.push(`/dashboard/project/${proj.id}`)}
-                onMouseEnter={() => setHoveredProject(proj.id)}
-                onMouseLeave={() => setHoveredProject(null)}
-                className="glass-card"
-                style={{
-                  ...projectCardStyle,
-                  borderColor: isHovered ? 'var(--accent-glow)' : 'var(--glass-border)',
-                  boxShadow: isHovered ? 'var(--shadow-lg), 0 0 0 1px var(--accent-glow)' : 'var(--shadow-card)',
+                key={a.action}
+                variants={{ hidden: { opacity: 0, y: 10, scale: 0.95 }, show: { opacity: 1, y: 0, scale: 1 } }}
+                whileHover={{ scale: 1.04, y: -1, boxShadow: 'var(--shadow-md)' }}
+                whileTap={{ scale: 0.96 }}
+                style={quickActionBtnStyle}
+                onClick={() => {
+                  if (a.action === 'new-project') window.dispatchEvent(new CustomEvent('forge:new-project'))
                 }}
               >
-                {/* Top accent bar */}
-                <motion.div
-                  style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                    background: 'linear-gradient(90deg, var(--accent), #e8963a, transparent)',
-                    borderRadius: '16px 16px 0 0',
-                  }}
-                  animate={{ opacity: isHovered ? 1 : 0 }}
-                  transition={{ duration: 0.25 }}
-                />
+                <span style={{ fontSize: 15 }}>{a.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{a.label}</span>
+              </motion.button>
+            ))}
+          </motion.div>
 
-                {/* Hover glow layer */}
-                <motion.div
-                  style={{
-                    position: 'absolute', inset: 0, borderRadius: 16,
-                    background: 'radial-gradient(circle at 50% 0%, var(--accent-soft) 0%, transparent 60%)',
-                    pointerEvents: 'none',
-                  }}
-                  animate={{ opacity: isHovered ? 1 : 0 }}
-                  transition={{ duration: 0.3 }}
-                />
+          {/* Stats bar */}
+          <motion.div
+            className="glass"
+            style={statsBarStyle}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <StatItem label="Projects" value={projects.length} delay={0.2} />
+            <div style={statDivider} />
+            <StatItem label="Modules" value={MODULES.length} delay={0.3} />
+            <div style={statDivider} />
+            <StatItem label="AI Agents" value={6} delay={0.4} />
+          </motion.div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative', zIndex: 1 }}>
+          {/* Project grid */}
+          <motion.div
+            style={gridStyle}
+            initial="hidden" animate="show"
+            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.09 } } }}
+          >
+            {projects.map(proj => {
+              const ventureCount = getVentureCount(proj.id)
+              const isHovered = hoveredProject === proj.id
+              return (
+                <motion.button
+                  key={proj.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 24, scale: 0.96 },
+                    show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 280, damping: 22 } }
+                  }}
+                  whileHover={{ scale: 1.025, y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push(`/dashboard/project/${proj.id}`)}
+                  onMouseEnter={() => setHoveredProject(proj.id)}
+                  onMouseLeave={() => setHoveredProject(null)}
+                  className="glass-card"
+                  style={{
+                    ...projectCardStyle,
+                    borderColor: isHovered ? 'var(--accent-glow)' : 'var(--glass-border)',
+                    boxShadow: isHovered ? 'var(--shadow-lg), 0 0 0 1px var(--accent-glow)' : 'var(--shadow-card)',
+                  }}
+                >
+                  {/* Top accent bar */}
                   <motion.div
                     style={{
-                      ...projectIconWrap,
-                      background: isHovered ? 'var(--accent-soft)' : 'var(--nav-active)',
-                      boxShadow: isHovered ? '0 0 12px var(--accent-glow)' : 'none',
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                      background: 'linear-gradient(90deg, var(--accent), #e8963a, transparent)',
+                      borderRadius: '16px 16px 0 0',
                     }}
-                    animate={isHovered ? { scale: 1.08 } : { scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                  >
-                    <span style={{ fontSize: 22 }}>{proj.icon}</span>
-                  </motion.div>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>{formatDate(proj.created_at)}</span>
-                </div>
+                    animate={{ opacity: isHovered ? 1 : 0 }}
+                    transition={{ duration: 0.25 }}
+                  />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, position: 'relative', zIndex: 1 }}>
-                  <span style={projectCardName}>{proj.name}</span>
-                  {proj.description && (
-                    <span style={projectCardDesc}>{proj.description}</span>
-                  )}
-                </div>
+                  {/* Hover glow layer */}
+                  <motion.div
+                    style={{
+                      position: 'absolute', inset: 0, borderRadius: 16,
+                      background: 'radial-gradient(circle at 50% 0%, var(--accent-soft) 0%, transparent 60%)',
+                      pointerEvents: 'none',
+                    }}
+                    animate={{ opacity: isHovered ? 1 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
 
-                {/* Bottom bar */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, position: 'relative', zIndex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{
-                      width: 6, height: 6, borderRadius: '50%',
-                      background: ventureCount > 0 ? 'var(--accent)' : 'var(--border-strong)',
-                      boxShadow: ventureCount > 0 ? '0 0 6px var(--accent-glow)' : 'none',
-                    }} />
-                    <span style={ventureCountStyle}>{ventureCount} venture{ventureCount !== 1 ? 's' : ''}</span>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative', zIndex: 1 }}>
+                    <motion.div
+                      style={{
+                        ...projectIconWrap,
+                        background: isHovered ? 'var(--accent-soft)' : 'var(--nav-active)',
+                        boxShadow: isHovered ? '0 0 12px var(--accent-glow)' : 'none',
+                      }}
+                      animate={isHovered ? { scale: 1.08 } : { scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    >
+                      <span style={{ fontSize: 22 }}>{proj.icon}</span>
+                    </motion.div>
+                    <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>{formatDate(proj.created_at)}</span>
                   </div>
-                  {/* Module dots */}
-                  <div style={{ display: 'flex', gap: 3 }}>
-                    {MODULES.map((m, idx) => (
-                      <motion.div
-                        key={m.id}
-                        style={{ width: 6, height: 6, borderRadius: '50%' }}
-                        animate={{
-                          background: isHovered ? m.accent : 'var(--border-strong)',
-                          boxShadow: isHovered ? `0 0 4px ${m.accent}80` : 'none',
-                        }}
-                        transition={{ delay: isHovered ? idx * 0.04 : 0, duration: 0.25 }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </motion.button>
-            )
-          })}
 
-          {/* New project card */}
-          <motion.button
-            variants={{
-              hidden: { opacity: 0, y: 24 },
-              show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 22 } }
-            }}
-            whileHover={{ scale: 1.025, y: -3, borderColor: 'var(--accent)', boxShadow: 'var(--shadow-md)' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => window.dispatchEvent(new CustomEvent('forge:new-project'))}
-            style={newProjectCardStyle}
-          >
-            <motion.div
-              style={newProjectIconWrap}
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, position: 'relative', zIndex: 1 }}>
+                    <span style={projectCardName}>{proj.name}</span>
+                    {proj.description && (
+                      <span style={projectCardDesc}>{proj.description}</span>
+                    )}
+                  </div>
+
+                  {/* Bottom bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: ventureCount > 0 ? 'var(--accent)' : 'var(--border-strong)',
+                        boxShadow: ventureCount > 0 ? '0 0 6px var(--accent-glow)' : 'none',
+                      }} />
+                      <span style={ventureCountStyle}>{ventureCount} venture{ventureCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    {/* Module dots */}
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {MODULES.map((m, idx) => (
+                        <motion.div
+                          key={m.id}
+                          style={{ width: 6, height: 6, borderRadius: '50%' }}
+                          animate={{
+                            background: isHovered ? m.accent : 'var(--border-strong)',
+                            boxShadow: isHovered ? `0 0 4px ${m.accent}80` : 'none',
+                          }}
+                          transition={{ delay: isHovered ? idx * 0.04 : 0, duration: 0.25 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </motion.button>
+              )
+            })}
+
+            {/* New project card */}
+            <motion.button
+              variants={{
+                hidden: { opacity: 0, y: 24 },
+                show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 22 } }
+              }}
+              whileHover={{ scale: 1.025, y: -3, borderColor: 'var(--accent)', boxShadow: 'var(--shadow-md)' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => window.dispatchEvent(new CustomEvent('forge:new-project'))}
+              style={newProjectCardStyle}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </motion.div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-soft)', marginTop: 2 }}>New Project</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Start a new startup workspace</span>
-          </motion.button>
-        </motion.div>
+              <motion.div
+                style={newProjectIconWrap}
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </motion.div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-soft)', marginTop: 2 }}>New Project</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Start a new startup workspace</span>
+            </motion.button>
+          </motion.div>
 
-        {/* Footer */}
-        <motion.p
-          style={footerTextStyle}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.35 }}
-          transition={{ delay: 0.8 }}
-        >
-          Forge Autonomous Venture Orchestrator · v2.0.0
-        </motion.p>
+          {/* Footer */}
+          <motion.p
+            style={footerTextStyle}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.35 }}
+            transition={{ delay: 0.8 }}
+          >
+            Forge Autonomous Venture Orchestrator · v2.0.0
+          </motion.p>
+        </div>
       </div>
-    </div>
     </ErrorBoundary>
   )
 }
