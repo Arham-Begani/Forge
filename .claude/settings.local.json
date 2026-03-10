@@ -6,7 +6,9 @@
       "Bash(grep \"\"version\"\":*)",
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
-      "Bash(find C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge -type f \\\\\\( -iname \"*plan*\" -o -iname \"*implementation*\" \\\\\\) 2>/dev/null | head -20)"
+      "Bash(find C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge -type f \\\\\\( -iname \"*plan*\" -o -iname \"*implementation*\" \\\\\\) 2>/dev/null | head -20)",
+      "Bash(npx next:*)",
+      "Bash(git diff:*)"
     ]
   }
 }
