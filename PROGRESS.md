@@ -31,11 +31,11 @@ This file is Claude Code's memory between sessions.
 - [ ] Migration run and tables verified
 
 ### Phase 2 — Auth
-- [ ] `app/(auth)/signin/page.tsx`
-- [ ] `app/(auth)/signup/page.tsx`
-- [ ] `middleware.ts` — protecting /dashboard routes
-- [ ] `lib/auth.ts` — getSession(), requireAuth()
-- [ ] Auth flow tested end-to-end
+- [x] `app/(auth)/signin/page.tsx`
+- [x] `app/(auth)/signup/page.tsx`
+- [x] `middleware.ts` — protecting /dashboard routes
+- [x] `lib/auth.ts` — getSession(), requireAuth()
+- [x] Auth flow tested end-to-end
 
 ### Phase 3 — UI Shell
 - [ ] `ForgeUI.jsx` dropped into `src/components/`
