@@ -17,7 +17,7 @@ export interface FullLaunchResult {
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 export async function runFullLaunch(
-  venture: { ventureId: string; name: string; context: Record<string, unknown> },
+  venture: { ventureId: string; name: string; globalIdea?: string; context: Record<string, unknown> },
   onStream: (line: string) => Promise<void>,
   onAgentStatus: (agentId: string, status: 'waiting' | 'running' | 'complete' | 'failed') => Promise<void>,
   onComplete: (result: FullLaunchResult) => Promise<void>
@@ -27,7 +27,7 @@ export async function runFullLaunch(
 
   await onStream('=== Architect Agent: Planning your venture ===\n\n')
 
-  const architectModel = getProModelWithThinking(5000)
+  const architectModel = getProModelWithThinking(5000, 'gemini-2.5-pro')
 
   await streamPrompt(
     architectModel,
@@ -37,7 +37,7 @@ export async function runFullLaunch(
      Be specific. Reference the venture concept in each agent brief.
      Output a short task plan (under 300 words) then stop.`,
     `Venture concept: ${venture.name}
-
+${venture.globalIdea ? `Global Startup Vision: ${venture.globalIdea}\n` : ''}
      Briefly plan what each agent should focus on for this specific venture.
      Be concrete and specific to this idea — not generic instructions.`,
     onStream
