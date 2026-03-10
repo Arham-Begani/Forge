@@ -18,14 +18,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const session = await requireAuth()
-        const { name } = await request.json()
+        const { name, projectId } = await request.json()
 
         const result = z.string().min(1).max(100).safeParse(name)
         if (!result.success) {
             return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
         }
 
-        const venture = await createVenture(session.userId, name)
+        const venture = await createVenture(session.userId, name, projectId)
         return NextResponse.json(venture, { status: 201 })
     } catch (e) {
         if (e instanceof NextResponse) return e
