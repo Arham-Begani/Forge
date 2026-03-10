@@ -73,7 +73,7 @@ export async function createProject(
     const db = await createDb()
     const { data, error } = await db
       .from('projects')
-      .insert({ user_id: userId, name, description, icon })
+      .insert({ user_id: userId, name, description, icon, status: 'active' })
       .select()
       .single()
 
