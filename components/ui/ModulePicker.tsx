@@ -67,7 +67,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
               border: "1px solid var(--glass-border)",
-              boxShadow: "var(--shadow-premium)",
+              boxShadow: "var(--shadow-lg)",
               borderRadius: 16,
               padding: "6px",
               width: 300,
