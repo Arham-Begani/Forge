@@ -1,5 +1,5 @@
 // app/api/projects/[id]/route.ts
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, AuthError, isAuthError } from '@/lib/auth'
 import {
   getProject,
   updateProject,
@@ -33,7 +33,7 @@ export async function GET(
 
     return NextResponse.json({ ...project, ventures })
   } catch (e) {
-    if (e instanceof NextResponse) return e
+    if (isAuthError(e)) return e.toResponse()
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
@@ -59,7 +59,7 @@ export async function PATCH(
     await updateProject(id, result.data)
     return NextResponse.json({ ...project, ...result.data })
   } catch (e) {
-    if (e instanceof NextResponse) return e
+    if (isAuthError(e)) return e.toResponse()
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
@@ -79,7 +79,7 @@ export async function DELETE(
     await deleteProject(id)
     return new NextResponse(null, { status: 204 })
   } catch (e) {
-    if (e instanceof NextResponse) return e
+    if (isAuthError(e)) return e.toResponse()
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
