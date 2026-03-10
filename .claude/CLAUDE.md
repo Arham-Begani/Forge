@@ -36,7 +36,7 @@ Read PRD.md for the full product vision before starting any task.
 - Styling: Tailwind utilities + CSS variables for all design tokens
 - Database: Antigravity DB (Postgres) — never use SQLite or external DB
 - Auth: Antigravity built-in auth — never roll custom auth
-- AI: Anthropic Claude API only
+- AI: Google Gemini API only
 - Streaming: Server-Sent Events (SSE)
 - Validation: Zod on all API inputs and agent outputs
 - Deployment: Antigravity / Vercel
@@ -47,13 +47,13 @@ Read PRD.md for the full product vision before starting any task.
 
 | Module | Model | Special Features |
 |--------|-------|-----------------|
-| Full Launch Architect | claude-opus-4-6 | Agent Teams + extended thinking (10k) |
-| Research | claude-sonnet-4-6 | web_search tool enabled |
-| Branding | claude-sonnet-4-6 | Structured JSON + Zod validation |
-| Marketing | claude-sonnet-4-6 | Brand context injection |
-| Landing Page | claude-sonnet-4-6 | Code generation + deploy hooks |
-| Feasibility | claude-sonnet-4-6 | Extended thinking (8k tokens) |
-| Cleanup/formatting | claude-haiku-4-5 | Mechanical tasks only |
+| Full Launch Architect | gemini-3.0-pro | Agent Teams + extended thinking (10k) |
+| Research | gemini-3.0-flash | web_search tool enabled |
+| Branding | gemini-3.0-flash | Structured JSON + Zod validation |
+| Marketing | gemini-3.0-flash | Brand context injection |
+| Landing Page | gemini-3.0-flash | Code generation + deploy hooks |
+| Feasibility | gemini-3.0-flash | Extended thinking (8k tokens) |
+| Cleanup/formatting | gemini-3.0-flash | Mechanical tasks only |
 
 All agents: prompt caching enabled on system prompts.
 
@@ -111,7 +111,7 @@ Feasibility:      #7A5A8C
 
 ## Security Rules
 - All dashboard routes protected by requireAuth() middleware
-- Never expose ANTHROPIC_API_KEY to the client
+- Never expose GEMINI_API_KEY to the client
 - All API inputs validated with Zod before processing
 - Rate limit: 10 agent runs per user per hour
 - Agent timeout: 60 seconds max per run
