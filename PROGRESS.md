@@ -2,8 +2,8 @@
 
 ## How to Use This File
 Update this at the end of every session.
-Read this at the start of every session before opening Claude Code.
-This file is Claude Code's memory between sessions.
+Read this at the start of every session before opening Gemini Code.
+This file is the Agent's memory between sessions.
 
 ---
 
@@ -16,9 +16,9 @@ This file is Claude Code's memory between sessions.
 ## Phase Checklist
 
 ### Phase 0 — Environment Setup
-- [x] Claude Code installed (`npm install -g @anthropic-ai/claude-code`)
-- [ ] Next.js project created (`npx create-next-app@latest forge --typescript --tailwind --app`)
-- [x] Dependencies installed (`@anthropic-ai/sdk`, `zod`, `@antigravity/sdk`)
+- [x] Gemini Code installed (`npm install -g @anthropic-ai/claude-code`)
+- [x] Next.js project created (`npx create-next-app@latest forge --typescript --tailwind --app`)
+- [x] Dependencies installed (`@google/generative-ai`, `@anthropic-ai/sdk`, `zod`, `@antigravity/sdk`)
 - [x] `.env.local` created with API keys
 - [x] `.claude/settings.json` created with Agent Teams enabled
 - [x] Foundation documents written (PRD.md, ARCHITECTURE.md, VENTURE_OBJECT.md, CLAUDE.md)
@@ -59,7 +59,7 @@ This file is Claude Code's memory between sessions.
 - [x] `GET /api/ventures/[id]/stream/[convId]` — SSE stream
 - [ ] All routes tested with REST client
 
-### Phase 5 — Claude Skills
+### Phase 5 — Agent Skills
 - [x] `npx skills add` — frontend-design installed
 - [x] `npx skills add` — web-design-guidelines installed
 - [x] `.claude/skills/architect-agent/SKILL.md`
@@ -75,7 +75,7 @@ This file is Claude Code's memory between sessions.
 - [ ] `src/agents/content.ts` — built and tested with Genesis + Identity output
 - [ ] `src/agents/pipeline.ts` — built and tested with all context
 - [ ] `src/agents/feasibility.ts` — built and tested
-- [ ] `src/agents/orchestrator.ts` — Full Launch wired and tested
+- [ ] `src/agents/orchestrator.ts` — Full Launch wired and tested (Upgraded to Gemini 2.5)
 
 ### Phase 7 — Wire Agents to API
 - [ ] `/run` route calls correct agent per moduleId
@@ -127,138 +127,3 @@ This file is Claude Code's memory between sessions.
 **Broken:** None identified during audit.
 **Commits:** None this session (Audit only).
 **Tomorrow:** Start Phase 3 — UI Shell (ForgeUI.jsx and Sidebar).
-
----
-
-### Day 2 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 3 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 4 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 5 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 6 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 7 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 8 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 9 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 10 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 11 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 12 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 13 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 14 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 15 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Tomorrow:**
-
----
-
-### Day 16 — [date]
-**Goal:**
-**Built:**
-**Broken:**
-**Commits:**
-**Shipped:** 🚀
