@@ -8,6 +8,23 @@ export interface Session {
   name: string
 }
 
+// Custom error for auth failures — avoids instanceof issues with NextResponse across modules
+export class AuthError extends Error {
+  constructor() {
+    super('Unauthorized')
+    this.name = 'AuthError'
+  }
+
+  toResponse(): NextResponse {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+}
+
+// Safer check than instanceof which fails across Next.js boundary
+export function isAuthError(e: unknown): e is AuthError {
+  return e instanceof AuthError || (e instanceof Error && e.name === 'AuthError')
+}
+
 // Get the current session — returns null if not authenticated
 export async function getSession(): Promise<Session | null> {
   const supabase = await createClient()
@@ -15,19 +32,33 @@ export async function getSession(): Promise<Session | null> {
 
   if (error || !user) return null
 
-  return {
+  const session = {
     userId: user.id,
     email: user.email ?? '',
     name: user.user_metadata?.name ?? user.email ?? '',
   }
+
+  // Lazy sync: Ensure user exists in public.users to satisfy foreign key constraints.
+  // This helps when the database trigger (handle_new_user) didn't run for some reason.
+  try {
+    await supabase.from('users').upsert({
+      id: session.userId,
+      email: session.email,
+      name: session.name,
+    }, { onConflict: 'id' })
+  } catch (err) {
+    console.warn('[auth] Lazy user sync skipped/failed:', err)
+  }
+
+  return session
 }
 
-// Use in API routes — returns session or throws a 401 Response
+// Use in API routes — returns session or throws AuthError
 export async function requireAuth(): Promise<Session> {
   const session = await getSession()
 
   if (!session) {
-    throw NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    throw new AuthError()
   }
 
   return session
