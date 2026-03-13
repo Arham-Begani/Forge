@@ -43,6 +43,21 @@ export function getProModelWithThinking(thinkingBudget: number = 8000, modelId: 
     })
 }
 
+// Pro model with thinking + Google Search — used by Feasibility for real-time data
+export function getProModelWithSearchAndThinking(thinkingBudget: number = 10000): GenerativeModel {
+    return genAI.getGenerativeModel({
+        model: 'gemini-2.5-pro',
+        tools: [{ googleSearch: {} } as any],
+        generationConfig: {
+            temperature: 0.5,
+            topP: 0.95,
+            maxOutputTokens: 32768,
+            // @ts-expect-error — thinkingConfig not yet in type definitions
+            thinkingConfig: { thinkingBudget },
+        },
+    })
+}
+
 // ── Streaming helper ──────────────────────────────────────────────────────────
 
 // Streams a prompt to a model, calling onChunk for each text delta.
