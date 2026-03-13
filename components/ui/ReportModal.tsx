@@ -17,14 +17,14 @@ export function ReportModal({ isOpen, onClose, title, content, accentColor }: Re
   return (
     <AnimatePresence>
       {isOpen && (
-        <div style={{
+        <div className="report-modal-overlay" style={{
           position: "fixed",
           top: 0, left: 0, right: 0, bottom: 0,
           zIndex: 1000,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 20,
+          padding: 16,
         }}>
           {/* Backdrop */}
           <motion.div
@@ -46,10 +46,11 @@ export function ReportModal({ isOpen, onClose, title, content, accentColor }: Re
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="report-modal-container"
             style={{
               width: "100%",
               maxWidth: 900,
-              maxHeight: "85vh",
+              maxHeight: "90vh",
               background: "var(--glass-bg-strong)",
               backdropFilter: "blur(20px)",
               border: "1px solid var(--glass-border)",
@@ -63,16 +64,17 @@ export function ReportModal({ isOpen, onClose, title, content, accentColor }: Re
           >
             {/* Header */}
             <div style={{
-              padding: "24px 32px",
+              padding: "20px 24px",
               borderBottom: "1px solid var(--border)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               background: `linear-gradient(to right, ${accentColor}10, transparent)`,
+              gap: 16,
             }}>
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0 }}>{title}</h2>
-                <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 0" }}>Comprehensive Analysis & Strategy</p>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</h2>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>Comprehensive Analysis & Strategy</p>
               </div>
               <button
                 onClick={onClose}
@@ -91,7 +93,7 @@ export function ReportModal({ isOpen, onClose, title, content, accentColor }: Re
             </div>
 
             {/* Content Area */}
-            <div className="markdown-report" style={{
+            <div className="markdown-report report-modal-content" style={{
               padding: "40px 48px",
               overflowY: "auto",
               flex: 1,

@@ -9,7 +9,9 @@ export type ModuleId =
   | "branding"
   | "marketing"
   | "landing"
-  | "feasibility";
+  | "feasibility"
+  | "general"
+  | "shadow-board";
 
 export interface ModuleDefinition {
   id: ModuleId;
@@ -26,6 +28,8 @@ export const MODULES: Record<ModuleId, ModuleDefinition> = {
   "marketing": { id: "marketing", icon: "▲", label: "Marketing", accent: "#8C5A7A", description: "GTM strategy" },
   "landing": { id: "landing", icon: "▣", label: "Landing Page", accent: "#8C7A5A", description: "Live deployment" },
   "feasibility": { id: "feasibility", icon: "◈", label: "Feasibility", accent: "#7A5A8C", description: "GO/NO-GO verdict" },
+  "general": { id: "general", icon: "◉", label: "General", accent: "#6B8F71", description: "Ask anything" },
+  "shadow-board": { id: "shadow-board", icon: "⚔", label: "Shadow Board", accent: "#E04848", description: "Silicon board review" },
 };
 
 export interface ModulePickerProps {

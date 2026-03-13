@@ -11,12 +11,15 @@ export type ModuleId =
   | "marketing"
   | "landing"
   | "feasibility"
-  | "full-launch";
+  | "full-launch"
+  | "general"
+  | "shadow-board";
 
 interface ResultCardProps {
   moduleId: ModuleId;
   result: Record<string, any>;
   deploymentUrl?: string;
+  onModalChange?: (open: boolean) => void;
 }
 
 const MODULE_ACCENTS: Record<ModuleId, string> = {
@@ -26,6 +29,8 @@ const MODULE_ACCENTS: Record<ModuleId, string> = {
   marketing: "#8C5A7A",
   landing: "#8C7A5A",
   feasibility: "#7A5A8C",
+  general: "#6B8F71",
+  "shadow-board": "#E04848",
 };
 
 const MODULE_LABELS: Record<ModuleId, string> = {
@@ -35,9 +40,11 @@ const MODULE_LABELS: Record<ModuleId, string> = {
   marketing: "GTM Strategy",
   landing: "Production Pipeline",
   feasibility: "Investment Assessment",
+  general: "General Chat",
+  "shadow-board": "Shadow Board Review",
 };
 
-export function ResultCard({ moduleId, result, deploymentUrl }: ResultCardProps) {
+export function ResultCard({ moduleId, result, deploymentUrl, onModalChange }: ResultCardProps) {
   const accent = MODULE_ACCENTS[moduleId] || "#666";
   const label = MODULE_LABELS[moduleId] || "Analysis";
   const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -48,6 +55,7 @@ export function ResultCard({ moduleId, result, deploymentUrl }: ResultCardProps)
   const openReport = (title: string, content: string) => {
     setModalContent({ title, content });
     setModalOpen(true);
+    onModalChange?.(true);
   };
 
   return (
@@ -155,6 +163,7 @@ export function ResultCard({ moduleId, result, deploymentUrl }: ResultCardProps)
                     onOpenReport={(t, c) => openReport(t, c)}
                   />
                 )}
+                {moduleId === "shadow-board" && <ShadowBoardDisplay result={result} />}
               </div>
 
               {/* Action buttons */}
@@ -238,7 +247,7 @@ export function ResultCard({ moduleId, result, deploymentUrl }: ResultCardProps)
 
       <ReportModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); onModalChange?.(false); }}
         title={modalContent.title}
         content={modalContent.content}
         accentColor={accent}
@@ -430,12 +439,26 @@ function MarketingDisplay({ result, onOpenReport }: { result: Record<string, any
 }
 
 function LandingDisplay({ result, externalUrl }: { result: Record<string, any>; externalUrl?: string }) {
-  const heroHeadline = result.landingPageCopy?.hero?.headline || result.heroHeadline;
+  const copy = result.landingPageCopy || {};
+  const hero = copy.hero || {};
+  const features = Array.isArray(copy.features) ? copy.features : [];
+  const pricing = Array.isArray(copy.pricing) ? copy.pricing : [];
+  const faq = Array.isArray(copy.faq) ? copy.faq : [];
+  const seo = result.seoMetadata || {};
+  const url = externalUrl || result.deploymentUrl;
+
   return (
     <>
-      <Row label="Hero Hook" value={typeof heroHeadline === 'string' ? heroHeadline : JSON.stringify(heroHeadline)} highlight />
-      <Row label="Production" value={(externalUrl || result.deploymentUrl) ? "Live on Forge Pipeline" : "Generating components..."} />
-      <Row label="Conversion" value="Lead capture hooks active" />
+      <Row label="Hero Hook" value={hero.headline || result.heroHeadline} highlight />
+      {hero.subheadline && <Row label="Subheadline" value={hero.subheadline} />}
+      {hero.ctaPrimary && <Row label="Primary CTA" value={hero.ctaPrimary} />}
+      <Row label="Features" value={features.length > 0 ? `${features.length} features defined` : undefined} />
+      <Row label="Pricing" value={pricing.length > 0 ? pricing.map((p: any) => `${p.tier} (${p.price})`).join(' · ') : undefined} />
+      <Row label="FAQ" value={faq.length > 0 ? `${faq.length} questions covered` : undefined} />
+      <Row label="SEO Title" value={seo.title} />
+      <Row label="Tech Stack" value="Next.js 15 · Tailwind CSS · React · Vercel" />
+      <Row label="Production" value={url ? "Live on Forge Pipeline" : "Generating components..."} />
+      <Row label="Conversion" value={result.leadCaptureActive ? "Lead capture active" : "Lead capture hooks active"} />
     </>
   );
 }
@@ -443,54 +466,152 @@ function LandingDisplay({ result, externalUrl }: { result: Record<string, any>; 
 function FeasibilityDisplay({ result, onOpenReport }: { result: Record<string, any>; onOpenReport: (content: string) => void }) {
   const [showChart, setShowChart] = useState(false);
   const verdict = result.feasibility?.verdict || result.verdict;
+  const verdictRationale = result.verdictRationale || result.feasibility?.verdictRationale;
   const financialModel = result.financialModel || result.feasibility?.financialModel;
   const feasibilityReport = result.feasibilityReport || result.feasibility?.feasibilityReport;
+  const marketTimingScore = result.marketTimingScore || result.feasibility?.marketTimingScore;
+  const risks = result.risks || result.feasibility?.risks || [];
+  const competitiveMoat = result.competitiveMoat || result.feasibility?.competitiveMoat;
 
   const chartData = [
-    { name: "Y1", revenue: resultsToNumber(financialModel?.yearOne?.revenue) || 120 },
-    { name: "Y2", revenue: resultsToNumber(financialModel?.yearTwo?.revenue) || 450 },
-    { name: "Y3", revenue: resultsToNumber(financialModel?.yearThree?.revenue) || 1200 },
+    { name: "Y1", revenue: resultsToNumber(financialModel?.yearOne?.revenue) || 0, costs: resultsToNumber(financialModel?.yearOne?.costs) || 0 },
+    { name: "Y2", revenue: resultsToNumber(financialModel?.yearTwo?.revenue) || 0, costs: resultsToNumber(financialModel?.yearTwo?.costs) || 0 },
+    { name: "Y3", revenue: resultsToNumber(financialModel?.yearThree?.revenue) || 0, costs: resultsToNumber(financialModel?.yearThree?.costs) || 0 },
   ];
 
   function resultsToNumber(val: any) {
     if (!val) return null;
     const s = String(val).replace(/[^0-9.]/g, '');
-    return parseFloat(s);
+    return parseFloat(s) || null;
   }
+
+  const timingColor = (marketTimingScore ?? 0) >= 7 ? "#16a34a" : (marketTimingScore ?? 0) >= 4 ? "#d97706" : "#dc2626";
+  const highRisks = risks.filter((r: any) => r.impact === 'high' || r.likelihood === 'high').length;
 
   return (
     <>
-      <Row label="Verdict" value={verdict} isBadge />
-      <Row label="Financials" value={`CAC: ${financialModel?.cac || 'TBD'} | LTV: ${financialModel?.ltv || 'TBD'}`} />
-      
+      {/* Verdict + Market Timing Row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flex: 1, minWidth: 180 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", width: 90, flexShrink: 0 }}>Verdict</span>
+          {verdict && <VerdictBadge value={String(verdict)} />}
+        </div>
+        {marketTimingScore != null && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "5px 12px",
+            background: `${timingColor}10`,
+            border: `1px solid ${timingColor}20`,
+            borderRadius: 8,
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Timing</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: timingColor }}>{marketTimingScore}</span>
+            <span style={{ fontSize: 10, color: "var(--muted)" }}>/10</span>
+          </div>
+        )}
+      </div>
+
+      {/* Verdict Rationale (truncated) */}
+      {verdictRationale && (
+        <p style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.6, margin: "4px 0 0", maxHeight: 48, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {String(verdictRationale).slice(0, 180)}{String(verdictRationale).length > 180 ? "..." : ""}
+        </p>
+      )}
+
+      {/* Unit Economics Cards */}
+      {financialModel && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginTop: 4 }}>
+          {[
+            { label: "CAC", value: financialModel.cac },
+            { label: "LTV", value: financialModel.ltv },
+            { label: "LTV:CAC", value: financialModel.ltvCacRatio },
+            { label: "Break-even", value: financialModel.breakEvenMonth ? `Mo ${financialModel.breakEvenMonth}` : null },
+          ].filter(m => m.value).map((metric) => (
+            <div key={metric.label} style={{
+              padding: "8px 10px",
+              background: "var(--glass-bg)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              textAlign: "center",
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{metric.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#7A5A8C", marginTop: 2 }}>{String(metric.value)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Risk Summary */}
+      {risks.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", width: 90, flexShrink: 0 }}>Risks</span>
+          <span style={{ fontSize: 12, color: "var(--text-soft)" }}>
+            {risks.length} identified{highRisks > 0 && <span style={{ color: "#dc2626", fontWeight: 600 }}> ({highRisks} high severity)</span>}
+          </span>
+        </div>
+      )}
+
+      {/* Moat snippet */}
+      {competitiveMoat && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", width: 90, flexShrink: 0 }}>Moat</span>
+          <span style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.5 }}>
+            {String(competitiveMoat).slice(0, 120)}{String(competitiveMoat).length > 120 ? "..." : ""}
+          </span>
+        </div>
+      )}
+
+      {/* Revenue vs Costs Chart */}
       <div className="mt-4 flex flex-col gap-3">
         <button
           onClick={() => setShowChart(!showChart)}
           className="flex items-center gap-2 px-4 py-2 bg-[var(--glass-bg)] border border-[var(--border)] rounded-lg text-xs font-bold text-[var(--text-soft)] hover:bg-[var(--glass-bg-strong)] transition-all"
         >
-          {showChart ? "Hide Visualization" : "📊 Visualize Revenue Growth"}
+          {showChart ? "Hide Projections" : "3-Year Financial Projections"}
         </button>
 
         <AnimatePresence>
           {showChart && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 200 }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               className="w-full bg-[var(--sidebar)] rounded-xl p-4 border border-[var(--border)]"
             >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="name" stroke="var(--muted)" fontSize={10} />
-                  <YAxis hide />
-                  <Tooltip 
-                    contentStyle={{ background: 'var(--sidebar)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px' }}
-                    itemStyle={{ color: '#7A5A8C' }}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="#7A5A8C" strokeWidth={3} dot={{ r: 4, fill: '#7A5A8C' }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div style={{ height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} barGap={2}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="name" stroke="var(--muted)" fontSize={10} />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--sidebar)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(value: any) => `$${Number(value).toLocaleString()}`}
+                    />
+                    <Bar dataKey="revenue" fill="#7A5A8C" radius={[4, 4, 0, 0]} name="Revenue" />
+                    <Bar dataKey="costs" fill="#7A5A8C40" radius={[4, 4, 0, 0]} name="Costs" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Year detail rows */}
+              {financialModel && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+                  {[
+                    { label: "Year 1", data: financialModel.yearOne },
+                    { label: "Year 2", data: financialModel.yearTwo },
+                    { label: "Year 3", data: financialModel.yearThree },
+                  ].map((yr) => yr.data && (
+                    <div key={yr.label} style={{ padding: "6px 8px", background: "var(--glass-bg)", borderRadius: 6, border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#7A5A8C", marginBottom: 4 }}>{yr.label}</div>
+                      <div style={{ fontSize: 10, color: "var(--text-soft)", lineHeight: 1.6 }}>
+                        <div>Rev: {yr.data.revenue}</div>
+                        <div>Net: {yr.data.netIncome}</div>
+                        <div>Users: {yr.data.customers}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -502,10 +623,87 @@ function FeasibilityDisplay({ result, onOpenReport }: { result: Record<string, a
           style={viewReportButtonStyle}
         >
           <FileText size={12} />
-          View Investment Assessment Report
+          View Full Investment Assessment Report
         </button>
       )}
     </>
+  );
+}
+
+function ShadowBoardDisplay({ result }: { result: Record<string, any> }) {
+  const score = result.survivalScore ?? 0;
+  const scoreColor = score >= 70 ? "#16a34a" : score >= 40 ? "#d97706" : "#E04848";
+  const dialogue = Array.isArray(result.boardDialogue) ? result.boardDialogue : [];
+  const pivots = Array.isArray(result.strategicPivots) ? result.strategicPivots : [];
+  const feedback = Array.isArray(result.syntheticFeedback) ? result.syntheticFeedback : [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Survival Score Hero */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "16px 20px",
+        background: `${scoreColor}08`,
+        border: `1px solid ${scoreColor}20`,
+        borderRadius: 12,
+      }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Survival Score</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}<span style={{ fontSize: 16, opacity: 0.5 }}>/100</span></div>
+        </div>
+        <VerdictBadge value={result.verdictLabel || "Review Complete"} />
+      </div>
+
+      {/* Board Dialogue */}
+      <div className="flex flex-col gap-4">
+        <h4 style={subHeaderStyle}>The Shadow Board Take</h4>
+        {dialogue.map((d: any, i: number) => (
+          <div key={i} style={{ padding: "12px", background: "var(--glass-bg)", borderRadius: 10, borderLeft: `3px solid ${i === 0 ? '#E04848' : i === 1 ? '#5A6E8C' : '#5A8C6E'}` }}>
+             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{d.role}</div>
+             <p style={{ fontSize: 12, color: "var(--text-soft)", fontStyle: "italic", marginBottom: 6 }}>&ldquo;{d.thought}&rdquo;</p>
+             <p style={{ fontSize: 12, color: "#E04848", fontWeight: 600 }}>Honesty: {d.brutalHonesty}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Strategic Pivots */}
+      <div className="flex flex-col gap-3">
+        <h4 style={subHeaderStyle}>Strategic Pivots</h4>
+        {pivots.map((p: any, i: number) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "10px", border: "1px solid var(--border)", borderRadius: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#999", textDecoration: "line-through" }}>{p.currentPath}</span>
+              <span style={{ color: "var(--muted)" }}>→</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{p.betterPath}</span>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--muted)" }}>{p.rationale}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Synthetic Feedback */}
+      <div className="flex flex-col gap-3">
+        <h4 style={subHeaderStyle}>Silicon Pulse (Synthetic Feedback)</h4>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+          {feedback.map((f: any, i: number) => (
+            <div key={i} style={{ padding: "10px", background: "var(--sidebar)", borderRadius: 8, fontSize: 11 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ fontWeight: 700, color: "var(--text)" }}>{f.persona}</span>
+                <span style={{ 
+                  color: f.sentiment === 'positive' ? '#16a34a' : f.sentiment === 'negative' ? '#dc2626' : '#d97706',
+                  fontWeight: 800,
+                  textTransform: "uppercase"
+                }}>{f.sentiment}</span>
+              </div>
+              <p style={{ color: "var(--text-soft)", fontStyle: "italic" }}>&ldquo;{f.quote}&rdquo;</p>
+              <div style={{ marginTop: 6, color: "#dc2626", fontWeight: 600 }}>Flaw: {f.criticalFlaw}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -524,7 +722,7 @@ function FullLaunchDisplay({ result, externalUrl, onOpenReport }: {
   const stringVerdict = typeof verdict === 'object' ? (verdict.verdict || JSON.stringify(verdict)) : String(verdict || "");
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-x-6">
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <h4 style={subHeaderStyle}>Core Strategy</h4>
         <Row label="Venture" value={stringBrand} highlight />
