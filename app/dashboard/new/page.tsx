@@ -1,0 +1,442 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+
+export default function NewProjectPage() {
+  const router = useRouter()
+
+  const [ideaInput, setIdeaInput] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [enhancing, setEnhancing] = useState(false)
+  const [enhanced, setEnhanced] = useState(false)
+  const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
+
+  const canSubmit = ideaInput.trim().length > 5 && !submitting
+  const canEnhance = ideaInput.trim().length >= 5 && !enhancing && !submitting
+
+  async function handleEnhance() {
+    if (!canEnhance) return
+    setEnhancing(true)
+    try {
+      const res = await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea: ideaInput.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.enhanced) {
+          setIdeaInput(data.enhanced)
+          setEnhanced(true)
+          setTimeout(() => setEnhanced(false), 3000)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to enhance:', err)
+    } finally {
+      setEnhancing(false)
+    }
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit) return
+    const idea = ideaInput.trim()
+    setSubmitting(true)
+    setError('')
+
+    try {
+      // Step 1: Generate project name from idea
+      setStatus('Naming your project...')
+      let projectName = 'New Project'
+      try {
+        const nameRes = await fetch('/api/generate-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idea }),
+        })
+        if (nameRes.ok) {
+          const nameData = await nameRes.json()
+          if (nameData.name) projectName = nameData.name
+        }
+      } catch {
+        // Fallback name if generation fails
+      }
+
+      // Step 2: Create the project
+      setStatus('Creating project...')
+      const projRes = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: projectName }),
+      })
+      if (!projRes.ok) {
+        const err = await projRes.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to create project')
+      }
+      const project = await projRes.json()
+
+      // Step 3: Save the global idea
+      setStatus('Saving your vision...')
+      await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ global_idea: idea }),
+      })
+
+      // Step 4: Create initial venture
+      setStatus('Initializing venture...')
+      try {
+        const ventureRes = await fetch('/api/ventures', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `${projectName} - v1`, projectId: project.id }),
+        })
+        if (ventureRes.ok) {
+          const newVenture = await ventureRes.json()
+          window.dispatchEvent(new CustomEvent('forge:venture-added', { detail: newVenture }))
+        }
+      } catch {
+        // Non-critical — venture can be created later
+      }
+
+      // Notify sidebar to refresh project list
+      window.dispatchEvent(new CustomEvent('forge:refresh-projects'))
+
+      // Step 5: Also save as user idea if first time
+      try {
+        const ideaRes = await fetch('/api/user/idea')
+        if (ideaRes.ok) {
+          const ideaData = await ideaRes.json()
+          if (!ideaData?.idea) {
+            await fetch('/api/user/idea', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ idea }),
+            })
+          }
+        }
+      } catch {
+        // Non-critical
+      }
+
+      // Navigate to the new project
+      setStatus('Launching...')
+      router.push(`/dashboard/project/${project.id}`)
+
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.')
+      setSubmitting(false)
+      setStatus('')
+    }
+  }
+
+  return (
+    <motion.div
+      style={pageStyle}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Ambient glow */}
+      <div style={glowStyle} />
+
+      {/* Logo */}
+      <motion.div
+        style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <motion.div
+          style={hexStyle}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+        />
+        <span style={wordmarkStyle}>Forge</span>
+      </motion.div>
+
+      {/* Heading */}
+      <motion.h2
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.5 }}
+        style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.03em', textAlign: 'center' }}
+      >
+        What do you want to build?
+      </motion.h2>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.6 }}
+        transition={{ delay: 0.25 }}
+        style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 32px', textAlign: 'center', maxWidth: 420 }}
+      >
+        Tell us your big idea and our AI workforce will handle the rest.
+      </motion.p>
+
+      {/* Input card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.2, type: 'spring', stiffness: 300, damping: 24 }}
+        style={{ width: '100%', maxWidth: 620 }}
+      >
+        <div
+          className="glass-card"
+          style={{
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Gradient top accent */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0,
+              height: 2,
+              background: 'linear-gradient(90deg, var(--accent), #e8a04e, var(--accent))',
+              backgroundSize: '200% 100%',
+              borderRadius: '16px 16px 0 0',
+            }}
+            animate={ideaInput.trim() ? { backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] } : {}}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+          />
+
+          <textarea
+            value={ideaInput}
+            onChange={e => setIdeaInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit()
+            }}
+            placeholder="Describe your startup idea in detail — the problem it solves, who it's for, and what makes it unique..."
+            style={{
+              width: '100%',
+              minHeight: 100,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--text)',
+              fontSize: 15,
+              lineHeight: 1.7,
+              resize: 'none',
+              fontFamily: 'inherit',
+            }}
+            autoFocus
+            maxLength={2000}
+            disabled={submitting}
+            aria-label="Describe your startup idea"
+          />
+
+          {/* Action bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderTop: '1px solid var(--border)',
+            paddingTop: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                fontSize: 11,
+                color: ideaInput.length > 1800 ? '#e05252' : 'var(--muted)',
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 500,
+                transition: 'color 200ms',
+              }}>
+                {ideaInput.length}/2000
+              </span>
+
+              {/* AI Enhance button */}
+              <AnimatePresence>
+                {ideaInput.trim().length >= 5 && !submitting && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={handleEnhance}
+                    disabled={!canEnhance}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '5px 14px',
+                      borderRadius: 20,
+                      background: enhanced ? 'rgba(90, 140, 110, 0.12)' : 'var(--accent-soft)',
+                      border: `1px solid ${enhanced ? 'rgba(90, 140, 110, 0.3)' : 'var(--accent-glow)'}`,
+                      color: enhanced ? '#5A8C6E' : 'var(--accent)',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: enhancing ? 'wait' : 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 200ms',
+                    }}
+                    whileHover={canEnhance ? { scale: 1.04, boxShadow: '0 2px 12px var(--accent-glow)' } : {}}
+                    whileTap={canEnhance ? { scale: 0.96 } : {}}
+                  >
+                    {enhancing ? (
+                      <>
+                        <motion.div
+                          style={{
+                            width: 12, height: 12,
+                            border: '2px solid var(--accent-glow)',
+                            borderTopColor: 'var(--accent)',
+                            borderRadius: '50%',
+                          }}
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                        />
+                        <span>Enhancing...</span>
+                      </>
+                    ) : enhanced ? (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Enhanced</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        <span>Enhance with AI</span>
+                      </>
+                    )}
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <AnimatePresence>
+              {canSubmit && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8, x: 12 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, x: 12 }}
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 20px',
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, var(--accent), #e8963a)',
+                    border: 'none',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    boxShadow: '0 4px 14px var(--accent-glow)',
+                    transition: 'box-shadow 200ms',
+                  }}
+                  whileHover={!submitting ? { scale: 1.05, boxShadow: '0 6px 20px var(--accent-glow)' } : {}}
+                  whileTap={!submitting ? { scale: 0.95 } : {}}
+                >
+                  {submitting ? (
+                    <motion.div
+                      style={{
+                        width: 16, height: 16,
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#fff',
+                        borderRadius: '50%',
+                      }}
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                    />
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Initialize</span>
+                    </>
+                  )}
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Status / hint */}
+        <motion.p
+          style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)', textAlign: 'center', opacity: 0.5, minHeight: 20 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          {error ? (
+            <span style={{ color: '#e05252', opacity: 1 }}>{error}</span>
+          ) : submitting ? (
+            <motion.span
+              style={{ color: 'var(--accent)', opacity: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {status}
+            </motion.span>
+          ) : (
+            <>Press <kbd style={kbdStyle}>Ctrl</kbd> + <kbd style={kbdStyle}>Enter</kbd> to initialize your vision</>
+          )}
+        </motion.p>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const pageStyle: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'var(--bg)',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '0 24px',
+}
+
+const glowStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '30%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 600,
+  height: 400,
+  background: 'radial-gradient(ellipse, var(--accent-glow) 0%, transparent 65%)',
+  filter: 'blur(60px)',
+  opacity: 0.35,
+  pointerEvents: 'none',
+}
+
+const hexStyle: React.CSSProperties = {
+  width: 32,
+  height: 32,
+  background: 'linear-gradient(135deg, var(--accent), #e8a04e)',
+  clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+  flexShrink: 0,
+  boxShadow: '0 0 20px var(--accent-glow)',
+}
+
+const wordmarkStyle: React.CSSProperties = {
+  fontSize: 26,
+  fontWeight: 700,
+  color: 'var(--text)',
+  letterSpacing: '-0.04em',
+}
+
+const kbdStyle: React.CSSProperties = {
+  background: 'var(--nav-active)',
+  padding: '2px 6px',
+  borderRadius: 4,
+  border: '1px solid var(--border)',
+  fontFamily: 'system-ui',
+  fontSize: 11,
+}
