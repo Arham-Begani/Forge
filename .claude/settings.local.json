@@ -8,7 +8,10 @@
       "Bash(npx tsc:*)",
       "Bash(find C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge -type f \\\\\\( -iname \"*plan*\" -o -iname \"*implementation*\" \\\\\\) 2>/dev/null | head -20)",
       "Bash(npx next:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(ls -la /c/Users/arham/Documents/Github/Forge/agents/ | grep -E \"\\\\.ts$\")",
+      "Bash(ls C:/Users/arham/Documents/Github/Forge/app/api/ventures/\\\\[id\\\\]/ 2>/dev/null)"
     ]
   }
 }

@@ -8,8 +8,8 @@ This file is the Agent's memory between sessions.
 ---
 
 ## Current Status
-**Phase:** 10 — Polish (Major UI Overhaul)
-**Last updated:** March 10, 2026
+**Phase:** 11 — Co-pilot + Timeline + Investor Kit
+**Last updated:** March 13, 2026
 
 ---
 
@@ -163,3 +163,22 @@ This file is the Agent's memory between sessions.
 - `app/dashboard/layout.tsx` — Added rename (pencil icon) for projects and ventures in sidebar on hover. Inline edit with Enter/Escape/blur support. Removed "Add venture" button from sidebar. Added "Manage" button next to PROJECTS label linking to dashboard.
 - `app/dashboard/project/[id]/page.tsx` — Added rename button next to project name in header. Added rename and delete buttons on venture cards (visible on hover). Removed "New Venture" button and inline creation form. Updated empty state messaging.
 **Broken:** None. All existing features preserved — SSE streaming, module picker, conversation history, CRUD operations, auth flow, settings page.
+
+### Day 8 — March 13, 2026
+**Goal:** Build Co-pilot + Timeline + Investor Kit features.
+**Built:**
+- **Founder Co-pilot:** `agents/general.ts` — Rewrote context injection with deep extraction of all venture data (research competitors/TAM/pain points, branding identity/voice/colors, marketing GTM/channels, feasibility verdict/financials/risks, landing page). Added module availability status hints. Updated system prompt to cite specific data points and suggest module re-runs. Increased response limit to 1200 words.
+- **Venture Timeline:** `lib/queries.ts` — Added `getConversationsByVenture()` query. `app/api/ventures/[id]/timeline/route.ts` — GET endpoint returning all conversations + active version tracking. `app/api/ventures/[id]/pin/route.ts` — POST endpoint to pin a conversation's result as active context. `app/dashboard/venture/[id]/[module]/page.tsx` — Added TimelinePanel component showing chronological runs with status, timestamps, and "Pin as Active" button.
+- **Investor Kit:** `agents/investor-kit.ts` — New Flash model agent producing executive summary, 10-12 slide pitch deck outline, one-page investment memo, funding ask details, and data room sections. Validated with Zod schema. `db/migrations/004_investor_kits.sql` — investor_kits table with access codes and view tracking. `lib/queries.ts` — CRUD helpers for investor kits. `app/api/ventures/[id]/investor-kit/route.ts` — GET/POST for generating and fetching kits. `app/api/investor-kit/[code]/route.ts` — Public access route (no auth). `app/investor/[code]/page.tsx` — Public data room page with tabs (Executive Summary, Pitch Deck, Investment Memo, The Ask), venture brand colors, view counter.
+- **Run route:** `app/api/ventures/[id]/run/route.ts` — Added investor-kit module case.
+**Broken:** None.
+**Next:** Run `004_investor_kits.sql` migration in DB console. Test all three features end-to-end.
+
+### Day 9 — March 14, 2026
+**Goal:** Fix Gen Kit not working, make all three features visually prominent.
+**Built:**
+- **Feature Action Bar:** Moved Timeline and Investor Kit buttons from tiny header badges into a dedicated action bar below the header with proper sizing (12px font, 7px padding, borders, hover effects, glow shadows). Bar only shows on non-general modules.
+- **Investor Kit UX:** Added spinner during generation, error messages with auto-dismiss, LIVE badge when kit exists, access code copy pill, views counter. Graceful handling when investor_kits table doesn't exist (GET returns null instead of 500). POST returns human-readable error about missing migration.
+- **Co-pilot rebrand:** Renamed "General" → "Co-pilot" in sidebar and module metadata. Updated description and suggestions. Response now renders as rich markdown via ReactMarkdown instead of plain pre-wrap text.
+**Broken:** None. Pre-existing `next.config.ts` type error (unrelated `after` experimental flag).
+**Next:** Run `004_investor_kits.sql` migration to enable Investor Kit generation.

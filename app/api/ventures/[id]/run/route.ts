@@ -10,6 +10,7 @@ import {
     getProject,
 } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { runGenesisAgent } from '@/agents/genesis'
 import { runIdentityAgent } from '@/agents/identity'
@@ -19,9 +20,10 @@ import { runFeasibilityAgent } from '@/agents/feasibility'
 import { runFullLaunch } from '@/agents/orchestrator'
 import { runGeneralAgent } from '@/agents/general'
 import { runShadowBoard } from '@/agents/shadow'
+import { runInvestorKitAgent } from '@/agents/investor-kit'
 
 const bodySchema = z.object({
-    moduleId: z.enum(['research', 'branding', 'marketing', 'landing', 'feasibility', 'full-launch', 'general', 'shadow-board']),
+    moduleId: z.enum(['research', 'branding', 'marketing', 'landing', 'feasibility', 'full-launch', 'general', 'shadow-board', 'investor-kit']),
     prompt: z.string().min(1).max(2000),
     depth: z.enum(['brief', 'medium', 'detailed']).optional(),
 })
@@ -126,6 +128,12 @@ async function runAgent(
                 })
                 break
 
+            case 'investor-kit':
+                await runInvestorKitAgent(ventureInput, onStream, async (result) => {
+                    await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
+                })
+                break
+
             default:
                 throw new Error(`Unknown moduleId: ${moduleId}`)
         }
@@ -139,8 +147,14 @@ async function runAgent(
 
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
-        await appendStreamLine(conversationId, `\n[Error: ${message}]`)
-        await updateConversationStatus(conversationId, 'failed')
+        const stack = error instanceof Error ? error.stack : ''
+        console.error(`Agent run failed [${moduleId}]:`, message, stack)
+        try {
+            await appendStreamLine(conversationId, `\n[Error: ${message}]`)
+            await updateConversationStatus(conversationId, 'failed')
+        } catch (dbError) {
+            console.error('Failed to write error to DB:', dbError)
+        }
     }
 }
 
@@ -167,9 +181,11 @@ export async function POST(
 
         const conversation = await createConversation(id, moduleId, prompt)
 
-        // Fire and forget — agent runs async
-        runAgent(id, conversation.id, moduleId, prompt, session.userId, depth).catch(
-            err => console.error('Agent error:', err)
+        // Use after() to keep the serverless function alive while agent runs
+        after(
+            runAgent(id, conversation.id, moduleId, prompt, session.userId, depth).catch(
+                err => console.error('Agent error:', err)
+            )
         )
 
         return NextResponse.json(
