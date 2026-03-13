@@ -147,5 +147,5 @@ export async function generateUnifiedPDF(ventureName: string, results: AgentResu
     }
   }
 
-  return doc.output('arraybuffer') as Uint8Array
+  return new Uint8Array(doc.output('arraybuffer') as ArrayBuffer)
 }
