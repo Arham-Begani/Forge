@@ -54,6 +54,7 @@
   --marketing: #8C5A7A;
   --landing: #8C7A5A;
   --feasibility: #7A5A8C;
+  --general: #6B8F71;
 
   --noise-opacity: 0.02;
   --blob-opacity: 0.4;
@@ -559,4 +560,111 @@ button, a {
 .input-focused {
   border-color: var(--accent) !important;
   box-shadow: var(--shadow-input) !important;
+}
+
+/* ─── Reading Panel ─────────────────────────────────────────────────────── */
+.reading-panel {
+  width: 380px;
+}
+
+/* ─── Document Markdown Formatting ─────────────────────────────────────── */
+
+.doc-markdown h1 { font-size: 1.4em; font-weight: 800; color: var(--text); margin: 1.2em 0 0.5em; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.doc-markdown h2 { font-size: 1.15em; font-weight: 700; color: var(--text); margin: 1em 0 0.4em; }
+.doc-markdown h3 { font-size: 1.05em; font-weight: 600; color: var(--text); margin: 0.8em 0 0.3em; }
+.doc-markdown h4 { font-size: 1em; font-weight: 600; color: var(--text-soft); margin: 0.6em 0 0.2em; }
+.doc-markdown p { margin: 0 0 0.8em; }
+.doc-markdown ul, .doc-markdown ol { margin: 0 0 0.8em; padding-left: 1.4em; }
+.doc-markdown li { margin-bottom: 0.35em; }
+.doc-markdown li::marker { color: var(--muted); }
+.doc-markdown strong { color: var(--text); font-weight: 600; }
+.doc-markdown em { font-style: italic; opacity: 0.9; }
+.doc-markdown table { width: 100%; border-collapse: collapse; margin: 0.8em 0; font-size: 0.92em; }
+.doc-markdown th { background: var(--nav-active); padding: 8px 10px; text-align: left; font-weight: 600; color: var(--text); border-bottom: 2px solid var(--border); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.03em; }
+.doc-markdown td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text-soft); }
+.doc-markdown tr:hover td { background: rgba(255,255,255,0.02); }
+.doc-markdown blockquote { border-left: 3px solid var(--accent); padding: 8px 0 8px 14px; margin: 0.8em 0; color: var(--muted); font-style: italic; background: rgba(255,255,255,0.02); border-radius: 0 6px 6px 0; }
+.doc-markdown code { background: var(--nav-active); padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.88em; }
+.doc-markdown pre { background: var(--sidebar); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0.8em 0; border: 1px solid var(--border); }
+.doc-markdown pre code { background: none; padding: 0; font-size: 0.85em; }
+.doc-markdown hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
+.doc-markdown a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-glow); }
+.doc-markdown a:hover { opacity: 0.8; }
+
+/* Stream panel markdown (lighter treatment) */
+.stream-markdown { font-family: 'DM Sans', system-ui, sans-serif; }
+.stream-markdown h1, .stream-markdown h2, .stream-markdown h3 { font-weight: 700; color: var(--text); margin: 0.4em 0 0.2em; }
+.stream-markdown h1 { font-size: 1.2em; }
+.stream-markdown h2 { font-size: 1.1em; }
+.stream-markdown h3 { font-size: 1em; }
+.stream-markdown p { margin: 0 0 0.4em; }
+.stream-markdown ul, .stream-markdown ol { margin: 0 0 0.4em; padding-left: 1.2em; }
+.stream-markdown li { margin-bottom: 0.15em; }
+.stream-markdown strong { color: var(--text); font-weight: 600; }
+.stream-markdown table { width: 100%; border-collapse: collapse; margin: 0.4em 0; font-size: 0.9em; }
+.stream-markdown th { padding: 4px 8px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+.stream-markdown td { padding: 3px 8px; border-bottom: 1px solid var(--border); }
+.stream-markdown code { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; font-size: 0.88em; }
+.stream-markdown blockquote { border-left: 2px solid var(--accent); padding-left: 10px; margin: 0.3em 0; opacity: 0.8; }
+
+/* ─── Report Modal Responsive ───────────────────────────────────────────── */
+
+/* ─── Responsive Design ─────────────────────────────────────────────────── */
+
+/* Tablet and below */
+@media (max-width: 1024px) {
+  .reading-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 340px;
+    z-index: 20;
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .reading-panel {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: none;
+  }
+
+  .report-modal-overlay {
+    padding: 0 !important;
+  }
+
+  .report-modal-container {
+    max-height: 100vh !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .report-modal-content {
+    padding: 24px 20px !important;
+  }
+
+  .markdown-report h1 { font-size: 1.8em !important; }
+  .markdown-report h2 { font-size: 1.4em !important; }
+  .markdown-report h3 { font-size: 1.2em !important; }
+  .markdown-report p { font-size: 0.95rem !important; }
+  .markdown-report table { font-size: 13px; }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .reading-panel {
+    width: 100%;
+  }
+
+  .report-modal-content {
+    padding: 20px 16px !important;
+  }
 }
