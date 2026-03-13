@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback, type ReactNode, type KeyboardEvent } from 'react'
+import React, { useEffect, useState, useRef, useCallback, type ReactNode, type KeyboardEvent, startTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { NavigationProgress } from '@/components/ui/NavigationProgress'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ const MODULES = [
   { id: 'marketing',    label: 'Marketing',    icon: '▲', accent: '#8C5A7A' },
   { id: 'landing',      label: 'Landing Page', icon: '▣', accent: '#8C7A5A' },
   { id: 'feasibility',  label: 'Feasibility',  icon: '◈', accent: '#7A5A8C' },
-  { id: 'general',      label: 'General',      icon: '◉', accent: '#6B8F71' },
+  { id: 'general',      label: 'Co-pilot',     icon: '◉', accent: '#6B8F71' },
 ] as const
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -90,6 +91,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dark, setDark] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // ─── Dark mode ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -187,7 +193,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       window.removeEventListener('forge:venture-added', handleVentureAdded)
       window.removeEventListener('forge:refresh-projects', handleRefreshProjects)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => { if (showNewProject && newProjectRef.current) newProjectRef.current.focus() }, [showNewProject])
   useEffect(() => { if (showNewVenture && newVentureRef.current) newVentureRef.current.focus() }, [showNewVenture])
@@ -370,47 +376,53 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
+      {/* Navigation Progress Bar */}
+      <NavigationProgress />
+
       {/* Loading Screen */}
-      {!appReady && <LoadingScreen onComplete={handleLoadingComplete} minimumDuration={1400} />}
+      {!appReady && <LoadingScreen onComplete={handleLoadingComplete} minimumDuration={800} />}
 
       <div className="flex h-screen overflow-hidden" style={{ opacity: appReady ? 1 : 0, transition: 'opacity 0.3s ease' }}>
 
         {/* ─── Mobile overlay ─── */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setMobileOpen(false)}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.4)',
-                backdropFilter: 'blur(4px)',
-                zIndex: 40,
-              }}
-              className="lg:hidden"
-            />
-          )}
-        </AnimatePresence>
+        {mounted && (
+          <AnimatePresence>
+            {mobileOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(4px)',
+                  zIndex: 40,
+                }}
+                className="lg:hidden"
+              />
+            )}
+          </AnimatePresence>
+        )}
 
         {/* ─── Sidebar ─── */}
-        <motion.aside
-          className="glass-sidebar"
-          animate={{ width: sidebarWidth }}
-          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            zIndex: 50,
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
+        {mounted ? (
+          <motion.aside
+            className="glass-sidebar"
+            animate={{ width: sidebarWidth }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            style={{
+              height: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              flexShrink: 0,
+              zIndex: 50,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
           {/* Subtle top gradient shimmer */}
           <div style={{
             position: 'absolute',
@@ -452,36 +464,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 aria-label="Go to dashboard"
                 tabIndex={0}
               />
-              <AnimatePresence>
-                {!sidebarCollapsed && (
-                  <motion.div
-                    className="flex items-center gap-2"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <span style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: 'var(--text)',
-                      letterSpacing: '-0.03em',
-                      whiteSpace: 'nowrap',
-                    }}>Forge</span>
-                    <span style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: 'var(--accent)',
-                      background: 'var(--accent-soft)',
-                      padding: '2px 6px',
-                      borderRadius: 5,
-                      letterSpacing: '0.04em',
-                      border: '1px solid var(--accent-glow)',
-                      whiteSpace: 'nowrap',
-                    }}>v2</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {mounted && (
+                <AnimatePresence>
+                  {!sidebarCollapsed && (
+                    <motion.div
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -8 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <span style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: 'var(--text)',
+                        letterSpacing: '-0.03em',
+                        whiteSpace: 'nowrap',
+                      }}>Forge</span>
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: 'var(--accent)',
+                        background: 'var(--accent-soft)',
+                        padding: '2px 6px',
+                        borderRadius: 5,
+                        letterSpacing: '0.04em',
+                        border: '1px solid var(--accent-glow)',
+                        whiteSpace: 'nowrap',
+                      }}>v2</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
             </div>
 
             {!sidebarCollapsed && (
@@ -506,27 +520,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   whileHover={{ scale: 1.1, backgroundColor: 'var(--nav-active)' }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <AnimatePresence mode="wait">
-                    {dark ? (
-                      <motion.svg
-                        key="sun"
-                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                      </motion.svg>
-                    ) : (
-                      <motion.svg
-                        key="moon"
-                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                      </motion.svg>
-                    )}
-                  </AnimatePresence>
+                  {mounted && (
+                    <AnimatePresence mode="wait">
+                      {dark ? (
+                        <motion.svg
+                          key="sun"
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </motion.svg>
+                      ) : (
+                        <motion.svg
+                          key="moon"
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </motion.svg>
+                      )}
+                    </AnimatePresence>
+                  )}
                 </motion.button>
               </div>
             )}
@@ -549,9 +565,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          {/* Scrollable content — only when expanded */}
+          {/* Scrollable content */}
           <AnimatePresence>
-            {!sidebarCollapsed && (
+            {!sidebarCollapsed && mounted && (
               <motion.div
                 className="flex-1 overflow-y-auto"
                 style={{ padding: '12px 10px' }}
@@ -561,33 +577,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 transition={{ duration: 0.15 }}
               >
                 {/* New Project button */}
-                <AnimatePresence mode="wait">
-                  {showNewProject ? (
-                    <motion.input
-                      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                      ref={newProjectRef}
-                      value={newProjectName}
-                      onChange={e => setNewProjectName(e.target.value)}
-                      onKeyDown={handleProjectKeyDown}
-                      onBlur={() => submitNewProject()}
-                      placeholder="Project name..."
-                      style={newInputStyle}
-                    />
-                  ) : (
-                    <motion.button
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-sm)' }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowNewProject(true)}
-                      style={newProjectBtnStyle}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      <span>New Project</span>
-                    </motion.button>
-                  )}
-                </AnimatePresence>
+                {mounted && (
+                  <AnimatePresence mode="wait">
+                    {showNewProject ? (
+                      <motion.input
+                        key="new-project-input"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        ref={newProjectRef}
+                        value={newProjectName}
+                        onChange={e => setNewProjectName(e.target.value)}
+                        onKeyDown={handleProjectKeyDown}
+                        onBlur={() => submitNewProject()}
+                        placeholder="Project name..."
+                        style={newInputStyle}
+                      />
+                    ) : (
+                      <motion.button
+                        key="new-project-button"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-sm)' }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowNewProject(true)}
+                        style={newProjectBtnStyle}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span>New Project</span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                )}
 
                 {/* Section Label + Manage Projects */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 8px 4px' }}>
@@ -739,203 +763,207 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                           )}
 
                           {/* Ventures under project */}
-                          <AnimatePresence>
-                            {isOpen && (
-                              <motion.div
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 1,
-                                  marginLeft: 14,
-                                  marginTop: 2,
-                                  paddingLeft: 10,
-                                  borderLeft: '1px solid var(--border)',
-                                  overflow: 'hidden',
-                                }}
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-                              >
-                                {projVentures.map(v => {
-                                  const vOpen = expandedVentures.has(v.id)
-                                  return (
-                                    <div key={v.id} className="flex flex-col">
-                                      {renamingVenture === v.id ? (
-                                        <motion.input
-                                          ref={renameVentureRef}
-                                          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                                          value={renameVentureValue}
-                                          onChange={e => setRenameVentureValue(e.target.value)}
-                                          onKeyDown={e => {
-                                            if (e.key === 'Enter') { e.preventDefault(); submitRenameVenture() }
-                                            else if (e.key === 'Escape') { setRenamingVenture(null) }
-                                          }}
-                                          onBlur={() => submitRenameVenture()}
-                                          style={{ ...newInputStyle, height: 28, fontSize: 11, margin: '1px 0' }}
-                                        />
-                                      ) : (
-                                      <motion.div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="group"
-                                        onClick={() => toggleVenture(v.id)}
-                                        onKeyDown={e => e.key === 'Enter' && toggleVenture(v.id)}
-                                        whileHover={{ backgroundColor: 'var(--nav-active)' }}
-                                        style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 5,
-                                          padding: '5px 6px',
-                                          borderRadius: 6,
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: 'pointer',
-                                          width: '100%',
-                                          textAlign: 'left',
-                                          fontFamily: 'inherit',
-                                          opacity: vOpen ? 1 : 0.72,
-                                        }}
-                                      >
-                                        <motion.svg
-                                          width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                          animate={{ rotate: vOpen ? 90 : 0 }}
-                                          transition={{ duration: 0.18, ease: 'easeInOut' }}
-                                          style={{ flexShrink: 0 }}
-                                        >
-                                          <polyline points="9 18 15 12 9 6" />
-                                        </motion.svg>
-                                        <span style={{
-                                          flex: 1,
-                                          fontSize: 12,
-                                          fontWeight: 500,
-                                          color: 'var(--text)',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          whiteSpace: 'nowrap',
-                                        }}>{v.name}</span>
-                                        <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }} className="group-hover:hidden">{formatDate(v.created_at)}</span>
-                                        <button
-                                          onClick={(e) => startRenameVenture(v.id, v.name, e)}
-                                          className="hidden group-hover:flex"
-                                          style={deleteButtonStyle}
-                                          title="Rename venture"
-                                          aria-label={`Rename venture ${v.name}`}
-                                        >
-                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
-                                          </svg>
-                                        </button>
-                                        <button
-                                          onClick={(e) => handleDeleteVenture(v.id, e)}
-                                          className="hidden group-hover:flex"
-                                          style={deleteButtonStyle}
-                                          title="Delete venture"
-                                          aria-label={`Delete venture ${v.name}`}
-                                        >
-                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                          </svg>
-                                        </button>
-                                      </motion.div>
-                                      )}
-
-                                      {/* Modules */}
-                                      <AnimatePresence>
-                                        {vOpen && (
-                                          <motion.div
-                                            style={{
-                                              display: 'flex',
-                                              flexDirection: 'column',
-                                              gap: 1,
-                                              marginLeft: 12,
-                                              marginTop: 2,
-                                              paddingLeft: 8,
-                                              borderLeft: '1px solid var(--border)',
-                                              overflow: 'hidden',
+                          {mounted && (
+                            <AnimatePresence>
+                              {isOpen && (
+                                <motion.div
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    marginLeft: 14,
+                                    marginTop: 2,
+                                    paddingLeft: 10,
+                                    borderLeft: '1px solid var(--border)',
+                                    overflow: 'hidden',
+                                  }}
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                                >
+                                  {projVentures.map(v => {
+                                    const vOpen = expandedVentures.has(v.id)
+                                    return (
+                                      <div key={v.id} className="flex flex-col">
+                                        {renamingVenture === v.id ? (
+                                          <motion.input
+                                            ref={renameVentureRef}
+                                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                                            value={renameVentureValue}
+                                            onChange={e => setRenameVentureValue(e.target.value)}
+                                            onKeyDown={e => {
+                                              if (e.key === 'Enter') { e.preventDefault(); submitRenameVenture() }
+                                              else if (e.key === 'Escape') { setRenamingVenture(null) }
                                             }}
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.16 }}
+                                            onBlur={() => submitRenameVenture()}
+                                            style={{ ...newInputStyle, height: 28, fontSize: 11, margin: '1px 0' }}
+                                          />
+                                        ) : (
+                                        <motion.div
+                                          role="button"
+                                          tabIndex={0}
+                                          className="group"
+                                          onClick={() => toggleVenture(v.id)}
+                                          onKeyDown={e => e.key === 'Enter' && toggleVenture(v.id)}
+                                          whileHover={{ backgroundColor: 'var(--nav-active)' }}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 5,
+                                            padding: '5px 6px',
+                                            borderRadius: 6,
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: 'pointer',
+                                            width: '100%',
+                                            textAlign: 'left',
+                                            fontFamily: 'inherit',
+                                            opacity: vOpen ? 1 : 0.72,
+                                          }}
+                                        >
+                                          <motion.svg
+                                            width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                            animate={{ rotate: vOpen ? 90 : 0 }}
+                                            transition={{ duration: 0.18, ease: 'easeInOut' }}
+                                            style={{ flexShrink: 0 }}
                                           >
-                                            {/* Master Dossier Link */}
-                                            <motion.button
-                                              initial={{ opacity: 0, x: -4 }}
-                                              animate={{ opacity: 1, x: 0 }}
-                                              whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
-                                              onClick={() => router.push(`/dashboard/venture/${v.id}`)}
+                                            <polyline points="9 18 15 12 9 6" />
+                                          </motion.svg>
+                                          <span style={{
+                                            flex: 1,
+                                            fontSize: 12,
+                                            fontWeight: 500,
+                                            color: 'var(--text)',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                          }}>{v.name}</span>
+                                          <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }} className="group-hover:hidden">{formatDate(v.created_at)}</span>
+                                          <button
+                                            onClick={(e) => startRenameVenture(v.id, v.name, e)}
+                                            className="hidden group-hover:flex"
+                                            style={deleteButtonStyle}
+                                            title="Rename venture"
+                                            aria-label={`Rename venture ${v.name}`}
+                                          >
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
+                                            </svg>
+                                          </button>
+                                          <button
+                                            onClick={(e) => handleDeleteVenture(v.id, e)}
+                                            className="hidden group-hover:flex"
+                                            style={deleteButtonStyle}
+                                            title="Delete venture"
+                                            aria-label={`Delete venture ${v.name}`}
+                                          >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                              <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                          </button>
+                                        </motion.div>
+                                        )}
+  
+                                        {/* Modules */}
+                                        {mounted && (
+                                          <AnimatePresence>
+                                          {vOpen && (
+                                            <motion.div
                                               style={{
                                                 display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 6,
-                                                padding: '6px 8px',
-                                                borderRadius: 6,
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                width: '100%',
-                                                textAlign: 'left',
-                                                fontFamily: 'inherit',
-                                                transition: 'background 150ms ease',
-                                                background: pathname === `/dashboard/venture/${v.id}` ? 'var(--nav-active)' : 'transparent',
-                                                borderLeft: pathname === `/dashboard/venture/${v.id}` ? '2px solid var(--accent)' : '2px solid transparent',
-                                                marginBottom: 4,
+                                                flexDirection: 'column',
+                                                gap: 1,
+                                                marginLeft: 12,
+                                                marginTop: 2,
+                                                paddingLeft: 8,
+                                                borderLeft: '1px solid var(--border)',
+                                                overflow: 'hidden',
                                               }}
+                                              initial={{ height: 0, opacity: 0 }}
+                                              animate={{ height: 'auto', opacity: 1 }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              transition={{ duration: 0.16 }}
                                             >
-                                              <span style={{ color: 'var(--accent)', fontSize: 11, width: 14, textAlign: 'center' }}>★</span>
-                                              <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 700 }}>Master Dossier</span>
-                                            </motion.button>
-
-                                            {MODULES.map((m, idx) => {
-                                              const active = isModuleActive(v.id, m.id)
-                                              return (
-                                                <motion.button
-                                                  key={m.id}
-                                                  initial={{ opacity: 0, x: -4 }}
-                                                  animate={{ opacity: 1, x: 0 }}
-                                                  transition={{ delay: idx * 0.03 }}
-                                                  whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
-                                                  onClick={() => router.push(`/dashboard/venture/${v.id}/${m.id}`)}
-                                                  aria-label={`Open ${m.label} module`}
-                                                  aria-current={active ? 'page' : undefined}
-                                                  style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 6,
-                                                    padding: '5px 8px',
-                                                    borderRadius: 6,
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    width: '100%',
-                                                    textAlign: 'left',
-                                                    fontFamily: 'inherit',
-                                                    transition: 'background 150ms ease',
-                                                    background: active ? `${m.accent}12` : 'transparent',
-                                                    borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
-                                                  }}
-                                                >
-                                                  <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
-                                                  <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
-                                                  {active && (
-                                                    <motion.div
-                                                      layoutId="module-active-dot"
-                                                      style={{ width: 4, height: 4, borderRadius: '50%', background: m.accent, marginLeft: 'auto', flexShrink: 0 }}
-                                                    />
-                                                  )}
-                                                </motion.button>
-                                              )
-                                            })}
-                                          </motion.div>
+                                              {/* Master Dossier Link */}
+                                              <motion.button
+                                                initial={{ opacity: 0, x: -4 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
+                                                onClick={() => router.push(`/dashboard/venture/${v.id}`)}
+                                                style={{
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: 6,
+                                                  padding: '6px 8px',
+                                                  borderRadius: 6,
+                                                  border: 'none',
+                                                  cursor: 'pointer',
+                                                  width: '100%',
+                                                  textAlign: 'left',
+                                                  fontFamily: 'inherit',
+                                                  transition: 'background 150ms ease',
+                                                  background: pathname === `/dashboard/venture/${v.id}` ? 'var(--nav-active)' : 'transparent',
+                                                  borderLeft: pathname === `/dashboard/venture/${v.id}` ? '2px solid var(--accent)' : '2px solid transparent',
+                                                  marginBottom: 4,
+                                                }}
+                                              >
+                                                <span style={{ color: 'var(--accent)', fontSize: 11, width: 14, textAlign: 'center' }}>★</span>
+                                                <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 700 }}>Master Dossier</span>
+                                              </motion.button>
+  
+                                              {MODULES.map((m, idx) => {
+                                                const active = isModuleActive(v.id, m.id)
+                                                return (
+                                                  <motion.button
+                                                    key={m.id}
+                                                    initial={{ opacity: 0, x: -4 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: idx * 0.03 }}
+                                                    whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
+                                                    onClick={() => router.push(`/dashboard/venture/${v.id}/${m.id}`)}
+                                                    aria-label={`Open ${m.label} module`}
+                                                    aria-current={active ? 'page' : undefined}
+                                                    style={{
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: 6,
+                                                      padding: '5px 8px',
+                                                      borderRadius: 6,
+                                                      border: 'none',
+                                                      cursor: 'pointer',
+                                                      width: '100%',
+                                                      textAlign: 'left',
+                                                      fontFamily: 'inherit',
+                                                      transition: 'background 150ms ease',
+                                                      background: active ? `${m.accent}12` : 'transparent',
+                                                      borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
+                                                    }}
+                                                  >
+                                                    <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
+                                                    <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
+                                                    {active && (
+                                                      <motion.div
+                                                        layoutId="module-active-dot"
+                                                        style={{ width: 4, height: 4, borderRadius: '50%', background: m.accent, marginLeft: 'auto', flexShrink: 0 }}
+                                                      />
+                                                    )}
+                                                  </motion.button>
+                                                )
+                                              })}
+                                            </motion.div>
+                                          )}
+                                          </AnimatePresence>
                                         )}
-                                      </AnimatePresence>
-                                    </div>
-                                  )
-                                })}
-
-                                {/* Venture creation removed — ventures are auto-created from greeting flow */}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                                      </div>
+                                    )
+                                  })}
+  
+                                  {/* Venture creation removed — ventures are auto-created from greeting flow */}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          )}
                         </motion.div>
                       )
                     })}
@@ -1009,55 +1037,61 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                   </svg>
                                 </button>
                               </motion.div>
-                              <AnimatePresence>
-                                {vOpen && (
-                                  <motion.div
-                                    style={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: 1,
-                                      marginLeft: 12,
-                                      marginTop: 2,
-                                      paddingLeft: 8,
-                                      borderLeft: '1px solid var(--border)',
-                                      overflow: 'hidden',
-                                    }}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.15 }}
-                                  >
-                                    {MODULES.map(m => {
-                                      const active = isModuleActive(v.id, m.id)
-                                      return (
-                                        <motion.button
-                                          key={m.id}
-                                          whileHover={{ backgroundColor: 'var(--nav-active)' }}
-                                          onClick={() => router.push(`/dashboard/venture/${v.id}/${m.id}`)}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            padding: '5px 8px',
-                                            borderRadius: 6,
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            width: '100%',
-                                            textAlign: 'left',
-                                            fontFamily: 'inherit',
-                                            transition: 'background 150ms ease',
-                                            background: active ? `${m.accent}12` : 'transparent',
-                                            borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
-                                          }}
-                                        >
-                                          <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
-                                          <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
-                                        </motion.button>
-                                      )
-                                    })}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
+                              {mounted && (
+                                <AnimatePresence>
+                                  {vOpen && (
+                                    <motion.div
+                                      style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 1,
+                                        marginLeft: 12,
+                                        marginTop: 2,
+                                        paddingLeft: 8,
+                                        borderLeft: '1px solid var(--border)',
+                                        overflow: 'hidden',
+                                      }}
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.15 }}
+                                    >
+                                      {MODULES.map(m => {
+                                        const active = isModuleActive(v.id, m.id)
+                                        return (
+                                          <motion.button
+                                            key={m.id}
+                                            whileHover={{ backgroundColor: 'var(--nav-active)' }}
+                                            onClick={() => {
+                                              startTransition(() => {
+                                                router.push(`/dashboard/venture/${v.id}/${m.id}`)
+                                              })
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 6,
+                                              padding: '5px 8px',
+                                              borderRadius: 6,
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              width: '100%',
+                                              textAlign: 'left',
+                                              fontFamily: 'inherit',
+                                              transition: 'background 150ms ease',
+                                              background: active ? `${m.accent}12` : 'transparent',
+                                              borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
+                                            }}
+                                          >
+                                            <span style={{ color: m.accent, fontSize: 11, lineBreak: 'anywhere', width: 14, textAlign: 'center' as const }}>{m.icon}</span>
+                                            <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
+                                          </motion.button>
+                                        )
+                                      })}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              )}
                             </div>
                           )
                         })}
@@ -1245,8 +1279,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </div>
         </motion.aside>
+      ) : (
+        <aside
+          className="glass-sidebar"
+          style={{
+            width: sidebarCollapsed ? 64 : 272,
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+            zIndex: 50,
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'var(--glass-bg)',
+            borderRight: '1px solid var(--border)',
+          }}
+        >
+          <div style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 22, height: 22,
+              background: 'var(--accent)',
+              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+            }} />
+            {!sidebarCollapsed && <span style={{ fontWeight: 700, color: 'var(--text)' }}>Forge</span>}
+          </div>
+        </aside>
+      )}
 
-        {/* ─── Mobile hamburger ─── */}
+      {/* ─── Mobile hamburger ─── */}
+      {mounted && (
         <motion.button
           className="lg:hidden fixed top-3 left-3 z-30"
           onClick={() => setMobileOpen(true)}
@@ -1271,21 +1332,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </motion.button>
+      )}
 
         {/* ─── Main Content ─── */}
         <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg)', position: 'relative' }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              style={{ height: '100%' }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          {mounted ? (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+                style={{ height: '100%' }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </>

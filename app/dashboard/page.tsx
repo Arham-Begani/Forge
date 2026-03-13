@@ -60,6 +60,11 @@ export default function DashboardPage() {
   const [ideaError, setIdeaError] = useState(false)
   const [enhancing, setEnhancing] = useState(false)
   const [enhanced, setEnhanced] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -201,8 +206,8 @@ export default function DashboardPage() {
     return (
       <motion.div
         style={intakePageStyle}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={mounted ? { opacity: 0 } : false}
+        animate={mounted ? { opacity: 1 } : false}
         transition={{ duration: 0.5 }}
       >
         {/* Ambient glow */}
@@ -318,7 +323,7 @@ export default function DashboardPage() {
 
                 {/* AI Enhance button */}
                 <AnimatePresence>
-                  {ideaInput.trim().length >= 5 && (
+                  {mounted && ideaInput.trim().length >= 5 && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -378,7 +383,7 @@ export default function DashboardPage() {
               </div>
 
               <AnimatePresence>
-                {canSubmitIdea && (
+                {mounted && canSubmitIdea && (
                   <motion.button
                     initial={{ opacity: 0, scale: 0.8, x: 12 }}
                     animate={{ opacity: 1, scale: 1, x: 0 }}

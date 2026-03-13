@@ -24,7 +24,12 @@ function GreetingContent() {
   const [showSuggestions, setShowSuggestions] = useState(true)
   const [enhancing, setEnhancing] = useState(false)
   const [enhanced, setEnhanced] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!projectId) {
@@ -127,6 +132,19 @@ function GreetingContent() {
   }
 
   const canSubmit = idea.trim().length > 5
+
+  if (!mounted) return (
+    <div className="ambient-page" style={containerStyle}>
+      <div style={contentStyle}>
+        <div style={headerWrap}>
+          <div style={logoHex} />
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={titleStyle}>Describe your vision</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="ambient-page" style={containerStyle}>

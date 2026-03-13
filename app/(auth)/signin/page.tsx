@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import React, { useState, useEffect, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 
@@ -9,6 +9,11 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -45,121 +50,145 @@ export default function SignInPage() {
       {/* Noise overlay */}
       <div style={noiseStyle} />
 
-      <motion.div
-        style={cardStyle}
-        className="glass-auth-card"
-        initial={{ opacity: 0, y: 32, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {/* Top accent line */}
-        <div style={accentLineStyle} />
-
-        {/* Logo */}
+      {mounted ? (
         <motion.div
-          style={logoStyle}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+          style={cardStyle}
+          className="glass-auth-card"
+          initial={{ opacity: 0, y: 32, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
+          {/* Top accent line */}
+          <div style={accentLineStyle} />
+  
+          {/* Logo */}
           <motion.div
-            style={hexLogoStyle}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          />
-          <span style={wordmarkStyle}>Forge</span>
-        </motion.div>
-
-        <motion.h1
-          style={titleStyle}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.4 }}
-        >
-          Welcome back
-        </motion.h1>
-        <motion.p
-          style={subtitleStyle}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.24, duration: 0.4 }}
-        >
-          Sign in to your Forge account
-        </motion.p>
-
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.45 }}
-        >
-          <label className="auth-label" htmlFor="email">Email address</label>
-          <input
-            id="email"
-            type="email"
-            className="auth-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            required
-          />
-
-          <label className="auth-label" htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            className="auth-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            autoComplete="current-password"
-            required
-          />
-
-          {error && (
-            <motion.p
-              className="auth-error"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {error}
-            </motion.p>
-          )}
-
-          <motion.button
-            type="submit"
-            className="auth-btn"
-            disabled={loading}
-            whileHover={!loading ? { scale: 1.015, translateY: -1 } : {}}
-            whileTap={!loading ? { scale: 0.985 } : {}}
-            style={{ marginTop: 4 }}
+            style={logoStyle}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
           >
-            {loading ? (
-              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <motion.span
-                  style={spinnerStyle}
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
-                />
-                Signing in…
-              </span>
-            ) : (
-              "Sign in"
+            <motion.div
+              style={hexLogoStyle}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            />
+            <span style={wordmarkStyle}>Forge</span>
+          </motion.div>
+  
+          <motion.h1
+            style={titleStyle}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18, duration: 0.4 }}
+          >
+            Welcome back
+          </motion.h1>
+          <motion.p
+            style={subtitleStyle}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.24, duration: 0.4 }}
+          >
+            Sign in to your Forge account
+          </motion.p>
+  
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.45 }}
+          >
+            <label className="auth-label" htmlFor="email">Email address</label>
+            <input
+              id="email"
+              type="email"
+              className="auth-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+  
+            <label className="auth-label" htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              className="auth-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+  
+            {error && (
+              <motion.p
+                className="auth-error"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {error}
+              </motion.p>
             )}
-          </motion.button>
-        </motion.form>
-
-        <motion.p
-          style={footerTextStyle}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-        >
-          Don&apos;t have an account?{" "}
-          <a href="/signup" style={linkStyle}>Sign up</a>
-        </motion.p>
-      </motion.div>
+  
+            <motion.button
+              type="submit"
+              className="auth-btn"
+              disabled={loading}
+              whileHover={!loading ? { scale: 1.015, translateY: -1 } : {}}
+              whileTap={!loading ? { scale: 0.985 } : {}}
+              style={{ marginTop: 4 }}
+            >
+              {loading ? (
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <motion.span
+                    style={spinnerStyle}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+                  />
+                  Signing in…
+                </span>
+              ) : (
+                "Sign in"
+              )}
+            </motion.button>
+          </motion.form>
+  
+          <motion.p
+            style={footerTextStyle}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+          >
+            Don&apos;t have an account?{" "}
+            <a href="/signup" style={linkStyle}>Sign up</a>
+          </motion.p>
+        </motion.div>
+      ) : (
+        <div style={cardStyle} className="glass-auth-card">
+          <div style={accentLineStyle} />
+          <div style={logoStyle}>
+            <div style={hexLogoStyle} />
+            <span style={wordmarkStyle}>Forge</span>
+          </div>
+          <h1 style={titleStyle}>Welcome back</h1>
+          <p style={subtitleStyle}>Sign in to your Forge account</p>
+          <form onSubmit={handleSubmit}>
+            <label className="auth-label" htmlFor="email">Email address</label>
+            <input id="email" type="email" className="auth-input" defaultValue={email} required />
+            <label className="auth-label" htmlFor="password">Password</label>
+            <input id="password" type="password" className="auth-input" defaultValue={password} required />
+            <button type="submit" className="auth-btn" disabled={loading} style={{ marginTop: 4 }}>
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+          <p style={footerTextStyle}>
+            Don&apos;t have an account? <a href="/signup" style={linkStyle}>Sign up</a>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

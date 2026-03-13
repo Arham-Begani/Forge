@@ -35,6 +35,7 @@ const STATUS_OPTIONS = [
 export default function ManageProjectsPage() {
   const router = useRouter()
 
+  const [mounted, setMounted] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [ventures, setVentures] = useState<Venture[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,6 +55,7 @@ export default function ManageProjectsPage() {
   const renameVentureRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    setMounted(true)
     async function load() {
       try {
         const [projRes, ventRes] = await Promise.all([
@@ -174,6 +176,15 @@ export default function ManageProjectsPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  if (!mounted) return (
+    <div style={pageStyle}>
+      <div style={contentStyle}>
+        <div style={{ height: 40, width: 100, borderRadius: 8, background: 'var(--glass-bg)', marginBottom: 20 }} />
+        <div style={{ height: 60, width: '100%', borderRadius: 12, background: 'var(--glass-bg)', marginBottom: 28 }} />
+      </div>
+    </div>
+  )
+
   return (
     <div style={pageStyle}>
       <div style={contentStyle}>
@@ -219,28 +230,30 @@ export default function ManageProjectsPage() {
         </motion.div>
 
         {/* Search bar */}
-        <div style={searchWrapStyle}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            placeholder="Search projects..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={searchInputStyle}
-          />
-          {search && (
-            <motion.button
-              onClick={() => setSearch('')}
-              style={{ padding: 2, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}
-              whileHover={{ scale: 1.1 }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </motion.button>
-          )}
-        </div>
+        {mounted && (
+          <div style={searchWrapStyle}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              placeholder="Search projects..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={searchInputStyle}
+            />
+            {search && (
+              <motion.button
+                onClick={() => setSearch('')}
+                style={{ padding: 2, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex' }}
+                whileHover={{ scale: 1.1 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </motion.button>
+            )}
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -258,7 +271,7 @@ export default function ManageProjectsPage() {
             initial="hidden" animate="show"
             variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }}
           >
-            {filtered.map(project => {
+            {mounted && filtered.map(project => {
               const pVentures = getVenturesForProject(project.id)
               const isExpanded = expandedId === project.id
               const statusInfo = STATUS_OPTIONS.find(s => s.value === project.status) || STATUS_OPTIONS[0]
@@ -413,7 +426,7 @@ export default function ManageProjectsPage() {
 
                     {/* Expanded ventures */}
                     <AnimatePresence>
-                      {isExpanded && (
+                      {mounted && isExpanded && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}

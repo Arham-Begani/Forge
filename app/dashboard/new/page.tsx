@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -13,6 +13,11 @@ export default function NewProjectPage() {
   const [enhanced, setEnhanced] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const canSubmit = ideaInput.trim().length > 5 && !submitting
   const canEnhance = ideaInput.trim().length >= 5 && !enhancing && !submitting
@@ -133,11 +138,20 @@ export default function NewProjectPage() {
     }
   }
 
+  if (!mounted) return (
+    <div style={pageStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
+        <div style={hexStyle} />
+        <span style={wordmarkStyle}>Forge</span>
+      </div>
+    </div>
+  )
+
   return (
     <motion.div
       style={pageStyle}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={mounted ? { opacity: 0 } : false}
+      animate={mounted ? { opacity: 1 } : false}
       transition={{ duration: 0.5 }}
     >
       {/* Ambient glow */}
@@ -146,8 +160,8 @@ export default function NewProjectPage() {
       {/* Logo */}
       <motion.div
         style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={mounted ? { opacity: 0, y: -20 } : false}
+        animate={mounted ? { opacity: 1, y: 0 } : false}
         transition={{ duration: 0.6, delay: 0.1 }}
       >
         <motion.div
@@ -160,16 +174,16 @@ export default function NewProjectPage() {
 
       {/* Heading */}
       <motion.h2
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={mounted ? { opacity: 0, y: 12 } : false}
+        animate={mounted ? { opacity: 1, y: 0 } : false}
         transition={{ delay: 0.15, duration: 0.5 }}
         style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.03em', textAlign: 'center' }}
       >
         What do you want to build?
       </motion.h2>
       <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
+        initial={mounted ? { opacity: 0 } : false}
+        animate={mounted ? { opacity: 0.6 } : false}
         transition={{ delay: 0.25 }}
         style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 32px', textAlign: 'center', maxWidth: 420 }}
       >
@@ -178,8 +192,8 @@ export default function NewProjectPage() {
 
       {/* Input card */}
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={mounted ? { opacity: 0, y: 20, scale: 0.97 } : false}
+        animate={mounted ? { opacity: 1, y: 0, scale: 1 } : false}
         transition={{ duration: 0.5, delay: 0.2, type: 'spring', stiffness: 300, damping: 24 }}
         style={{ width: '100%', maxWidth: 620 }}
       >
@@ -253,121 +267,125 @@ export default function NewProjectPage() {
               </span>
 
               {/* AI Enhance button */}
+              {mounted && (
+                <AnimatePresence>
+                  {ideaInput.trim().length >= 5 && !submitting && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      onClick={handleEnhance}
+                      disabled={!canEnhance}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '5px 14px',
+                        borderRadius: 20,
+                        background: enhanced ? 'rgba(90, 140, 110, 0.12)' : 'var(--accent-soft)',
+                        border: `1px solid ${enhanced ? 'rgba(90, 140, 110, 0.3)' : 'var(--accent-glow)'}`,
+                        color: enhanced ? '#5A8C6E' : 'var(--accent)',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: enhancing ? 'wait' : 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'all 200ms',
+                      }}
+                      whileHover={canEnhance ? { scale: 1.04, boxShadow: '0 2px 12px var(--accent-glow)' } : {}}
+                      whileTap={canEnhance ? { scale: 0.96 } : {}}
+                    >
+                      {enhancing ? (
+                        <>
+                          <motion.div
+                            style={{
+                              width: 12, height: 12,
+                              border: '2px solid var(--accent-glow)',
+                              borderTopColor: 'var(--accent)',
+                              borderRadius: '50%',
+                            }}
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                          />
+                          <span>Enhancing...</span>
+                        </>
+                      ) : enhanced ? (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Enhanced</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                          </svg>
+                          <span>Enhance with AI</span>
+                        </>
+                      )}
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              )}
+            </div>
+
+            {mounted && (
               <AnimatePresence>
-                {ideaInput.trim().length >= 5 && !submitting && (
+                {canSubmit && (
                   <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    onClick={handleEnhance}
-                    disabled={!canEnhance}
+                    initial={{ opacity: 0, scale: 0.8, x: 12 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: 12 }}
+                    onClick={handleSubmit}
+                    disabled={submitting}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '5px 14px',
-                      borderRadius: 20,
-                      background: enhanced ? 'rgba(90, 140, 110, 0.12)' : 'var(--accent-soft)',
-                      border: `1px solid ${enhanced ? 'rgba(90, 140, 110, 0.3)' : 'var(--accent-glow)'}`,
-                      color: enhanced ? '#5A8C6E' : 'var(--accent)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: enhancing ? 'wait' : 'pointer',
+                      gap: 8,
+                      padding: '8px 20px',
+                      borderRadius: 12,
+                      background: 'linear-gradient(135deg, var(--accent), #e8963a)',
+                      border: 'none',
+                      color: '#fff',
+                      cursor: 'pointer',
                       fontFamily: 'inherit',
-                      transition: 'all 200ms',
+                      boxShadow: '0 4px 14px var(--accent-glow)',
+                      transition: 'box-shadow 200ms',
                     }}
-                    whileHover={canEnhance ? { scale: 1.04, boxShadow: '0 2px 12px var(--accent-glow)' } : {}}
-                    whileTap={canEnhance ? { scale: 0.96 } : {}}
+                    whileHover={!submitting ? { scale: 1.05, boxShadow: '0 6px 20px var(--accent-glow)' } : {}}
+                    whileTap={!submitting ? { scale: 0.95 } : {}}
                   >
-                    {enhancing ? (
-                      <>
-                        <motion.div
-                          style={{
-                            width: 12, height: 12,
-                            border: '2px solid var(--accent-glow)',
-                            borderTopColor: 'var(--accent)',
-                            borderRadius: '50%',
-                          }}
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
-                        />
-                        <span>Enhancing...</span>
-                      </>
-                    ) : enhanced ? (
-                      <>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>Enhanced</span>
-                      </>
+                    {submitting ? (
+                      <motion.div
+                        style={{
+                          width: 16, height: 16,
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTopColor: '#fff',
+                          borderRadius: '50%',
+                        }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+                      />
                     ) : (
                       <>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                         </svg>
-                        <span>Enhance with AI</span>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>Initialize</span>
                       </>
                     )}
                   </motion.button>
                 )}
               </AnimatePresence>
-            </div>
-
-            <AnimatePresence>
-              {canSubmit && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8, x: 12 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: 12 }}
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 20px',
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, var(--accent), #e8963a)',
-                    border: 'none',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: '0 4px 14px var(--accent-glow)',
-                    transition: 'box-shadow 200ms',
-                  }}
-                  whileHover={!submitting ? { scale: 1.05, boxShadow: '0 6px 20px var(--accent-glow)' } : {}}
-                  whileTap={!submitting ? { scale: 0.95 } : {}}
-                >
-                  {submitting ? (
-                    <motion.div
-                      style={{
-                        width: 16, height: 16,
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: '#fff',
-                        borderRadius: '50%',
-                      }}
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
-                    />
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                      <span style={{ fontSize: 13, fontWeight: 600 }}>Initialize</span>
-                    </>
-                  )}
-                </motion.button>
-              )}
-            </AnimatePresence>
+            )}
           </div>
         </div>
 
         {/* Status / hint */}
         <motion.p
           style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)', textAlign: 'center', opacity: 0.5, minHeight: 20 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
+          initial={mounted ? { opacity: 0 } : false}
+          animate={mounted ? { opacity: 0.5 } : false}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           {error ? (
