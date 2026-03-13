@@ -8,27 +8,29 @@ interface LoadingScreenProps {
   minimumDuration?: number
 }
 
-export function LoadingScreen({ onComplete, minimumDuration = 1400 }: LoadingScreenProps) {
+export function LoadingScreen({ onComplete, minimumDuration = 800 }: LoadingScreenProps) {
   const [visible, setVisible] = useState(true)
   const [progress, setProgress] = useState(0)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     // Animate progress from 0 to 100
     const interval = setInterval(() => {
       setProgress(prev => {
         const remaining = 100 - prev
-        const increment = remaining * 0.08 + Math.random() * 3
+        const increment = remaining * 0.12 + Math.random() * 4
         return Math.min(prev + increment, 98)
       })
-    }, 50)
+    }, 40)
 
     const timer = setTimeout(() => {
       clearInterval(interval)
       setProgress(100)
       setTimeout(() => {
         setVisible(false)
-        setTimeout(() => onComplete?.(), 400)
-      }, 200)
+        setTimeout(() => onComplete?.(), 300)
+      }, 150)
     }, minimumDuration)
 
     return () => {
@@ -36,6 +38,8 @@ export function LoadingScreen({ onComplete, minimumDuration = 1400 }: LoadingScr
       clearInterval(interval)
     }
   }, [minimumDuration, onComplete])
+
+  if (!mounted) return null
 
   return (
     <AnimatePresence>
