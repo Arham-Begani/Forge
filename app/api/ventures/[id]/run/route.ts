@@ -22,11 +22,41 @@ import { runGeneralAgent } from '@/agents/general'
 import { runShadowBoard } from '@/agents/shadow'
 import { runInvestorKitAgent } from '@/agents/investor-kit'
 
+const DecisionSchema = z.object({
+    questionId: z.string(),
+    category: z.string(),
+    question: z.string(),
+    selectedLabel: z.string(),
+    selectedDescription: z.string(),
+    customAnswer: z.string().optional(),
+})
+
 const bodySchema = z.object({
     moduleId: z.enum(['research', 'branding', 'marketing', 'landing', 'feasibility', 'full-launch', 'general', 'shadow-board', 'investor-kit']),
     prompt: z.string().min(1).max(2000),
     depth: z.enum(['brief', 'medium', 'detailed']).optional(),
+    decisions: z.array(DecisionSchema).optional(),
 })
+
+interface Decision {
+    questionId: string
+    category: string
+    question: string
+    selectedLabel: string
+    selectedDescription: string
+    customAnswer?: string
+}
+
+function formatDecisionsForPrompt(decisions: Decision[]): string {
+    if (!decisions || decisions.length === 0) return ''
+    const lines = decisions.map(d => {
+        const answer = d.customAnswer
+            ? `${d.selectedLabel} — ${d.customAnswer}`
+            : `${d.selectedLabel} (${d.selectedDescription})`
+        return `- ${d.category}: ${d.question}\n  → User chose: ${answer}`
+    })
+    return `\n\n--- FOUNDER DECISIONS ---\nThe founder answered these strategic questions before this run. Incorporate their preferences:\n${lines.join('\n')}\n--- END DECISIONS ---\n`
+}
 
 async function runAgent(
     ventureId: string,
@@ -34,16 +64,19 @@ async function runAgent(
     moduleId: string,
     prompt: string,
     userId: string,
-    depth: 'brief' | 'medium' | 'detailed' = 'medium'
+    depth: 'brief' | 'medium' | 'detailed' = 'medium',
+    decisions: Decision[] = []
 ) {
     const venture = await getVenture(ventureId, userId)
     if (!venture) throw new Error('Venture not found')
 
     const project = venture.project_id ? await getProject(venture.project_id, userId) : null
 
+    const decisionsContext = formatDecisionsForPrompt(decisions)
+
     const ventureInput = {
         ventureId: venture.id,
-        name: `${venture.name}: ${prompt}`,
+        name: `${venture.name}: ${prompt}${decisionsContext}`,
         globalIdea: project?.global_idea ?? undefined,
         context: venture.context as unknown as Record<string, unknown>,
     }
@@ -172,7 +205,7 @@ export async function POST(
             return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
         }
 
-        const { moduleId, prompt, depth } = result.data
+        const { moduleId, prompt, depth, decisions } = result.data
 
         const venture = await getVenture(id, session.userId)
         if (!venture) {
@@ -183,7 +216,7 @@ export async function POST(
 
         // Use after() to keep the serverless function alive while agent runs
         after(
-            runAgent(id, conversation.id, moduleId, prompt, session.userId, depth).catch(
+            runAgent(id, conversation.id, moduleId, prompt, session.userId, depth, decisions).catch(
                 err => console.error('Agent error:', err)
             )
         )
