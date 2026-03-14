@@ -9,19 +9,23 @@ import {
 // ── Investor Kit Output Schema ──────────────────────────────────────────────
 
 export const InvestorKitSchema = z.object({
-    executiveSummary: z.string(),
+    executiveSummary: z.string().default('Executive summary pending.'),
     pitchDeckOutline: z.array(z.object({
-        slide: z.string(),
-        content: z.string(),
-        speakerNotes: z.string(),
-    })),
-    onePageMemo: z.string(),
+        slide: z.string().default('Slide Title'),
+        content: z.string().default('Slide contents pending.'),
+        speakerNotes: z.string().default('Speaker notes pending.'),
+    })).default([]),
+    onePageMemo: z.string().default('# Investment Memo\n\nFull memo documentation pending.'),
     askDetails: z.object({
-        suggestedRaise: z.string(),
-        useOfFunds: z.array(z.string()),
-        keyMilestones: z.array(z.string()),
+        suggestedRaise: z.string().default('$0'),
+        useOfFunds: z.array(z.string()).default([]),
+        keyMilestones: z.array(z.string()).default([]),
+    }).default({
+        suggestedRaise: '$0',
+        useOfFunds: [],
+        keyMilestones: []
     }),
-    dataRoomSections: z.array(z.string()),
+    dataRoomSections: z.array(z.string()).default([]),
 })
 
 export type InvestorKitOutput = z.infer<typeof InvestorKitSchema>
