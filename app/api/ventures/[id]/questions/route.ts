@@ -53,7 +53,7 @@ export async function POST(
         }
 
         const project = venture.project_id ? await getProject(venture.project_id, session.userId) : null
-        const context = venture.context as Record<string, unknown>
+        const context = venture.context as unknown as Record<string, unknown>
         const moduleDesc = MODULE_CONTEXT[moduleId] || 'venture building'
 
         // Build context summary for the AI
