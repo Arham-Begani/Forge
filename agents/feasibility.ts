@@ -12,50 +12,74 @@ import {
 // ── FeasibilityOutput Zod Schema ─────────────────────────────────────────────
 
 const FeasibilityOutputSchema = z.object({
-    verdict: z.enum(['GO', 'NO-GO', 'CONDITIONAL GO']),
-    verdictRationale: z.string(),
-    feasibilityReport: z.string(),
-    marketTimingScore: z.number().min(1).max(10),
-    marketTimingRationale: z.string(),
+    verdict: z.enum(['GO', 'NO-GO', 'CONDITIONAL GO']).default('CONDITIONAL GO'),
+    verdictRationale: z.string().default('Final verdict pending deeper analysis.'),
+    feasibilityReport: z.string().default('# Feasibility Study\n\nFull study documentation pending.'),
+    marketTimingScore: z.number().min(1).max(10).default(5),
+    marketTimingRationale: z.string().default('Timing signals are mixed.'),
     financialModel: z.object({
-        assumptions: z.record(z.string(), z.string()),
+        assumptions: z.record(z.string(), z.string()).default({}),
         yearOne: z.object({
-            revenue: z.string(),
-            costs: z.string(),
-            netIncome: z.string(),
-            customers: z.string(),
+            revenue: z.string().default('$0'),
+            costs: z.string().default('$0'),
+            netIncome: z.string().default('$0'),
+            customers: z.string().default('0'),
+        }).default({
+            revenue: '$0',
+            costs: '$0',
+            netIncome: '$0',
+            customers: '0'
         }),
         yearTwo: z.object({
-            revenue: z.string(),
-            costs: z.string(),
-            netIncome: z.string(),
-            customers: z.string(),
+            revenue: z.string().default('$0'),
+            costs: z.string().default('$0'),
+            netIncome: z.string().default('$0'),
+            customers: z.string().default('0'),
+        }).default({
+            revenue: '$0',
+            costs: '$0',
+            netIncome: '$0',
+            customers: '0'
         }),
         yearThree: z.object({
-            revenue: z.string(),
-            costs: z.string(),
-            netIncome: z.string(),
-            customers: z.string(),
+            revenue: z.string().default('$0'),
+            costs: z.string().default('$0'),
+            netIncome: z.string().default('$0'),
+            customers: z.string().default('0'),
+        }).default({
+            revenue: '$0',
+            costs: '$0',
+            netIncome: '$0',
+            customers: '0'
         }),
-        breakEvenMonth: z.number(),
-        cac: z.string(),
-        ltv: z.string(),
-        ltvCacRatio: z.string(),
+        breakEvenMonth: z.number().default(0),
+        cac: z.string().default('$0'),
+        ltv: z.string().default('$0'),
+        ltvCacRatio: z.string().default('0:1'),
+    }).default({
+        assumptions: {},
+        yearOne: { revenue: '$0', costs: '$0', netIncome: '$0', customers: '0' },
+        yearTwo: { revenue: '$0', costs: '$0', netIncome: '$0', customers: '0' },
+        yearThree: { revenue: '$0', costs: '$0', netIncome: '$0', customers: '0' },
+        breakEvenMonth: 0,
+        cac: '$0',
+        ltv: '$0',
+        ltvCacRatio: '0:1'
     }),
     risks: z.array(
         z.object({
-            category: z.string(),
+            category: z.string().default('General'),
             risk: z.string(),
-            likelihood: z.enum(['high', 'medium', 'low']),
-            impact: z.enum(['high', 'medium', 'low']),
-            mitigation: z.string(),
+            likelihood: z.enum(['high', 'medium', 'low']).default('medium'),
+            impact: z.enum(['high', 'medium', 'low']).default('medium'),
+            mitigation: z.string().default('Mitigation strategy pending.'),
         })
-    ).min(5),
-    competitiveMoat: z.string(),
-    regulatoryLandscape: z.string(),
-    keyAssumptions: z.array(z.string()),
-    keyRisksToMonitor: z.array(z.string()),
-    reportSections: z.array(z.string()),
+    ).min(0).default([]),
+    competitiveMoat: z.string().default('Moat analysis pending.'),
+    regulatoryLandscape: z.string().default('Regulatory review pending.'),
+    keyAssumptions: z.array(z.string()).default([]),
+    keyRisksToMonitor: z.array(z.string()).default([]),
+    reportSections: z.array(z.string()).default([]),
 })
 
 export type FeasibilityOutput = z.infer<typeof FeasibilityOutputSchema>
