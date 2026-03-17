@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useRef, useCallback, type ReactNode, type KeyboardEvent, startTransition } from 'react'
+import React, { useEffect, useState, useRef, useCallback, type ReactNode, type KeyboardEvent } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
@@ -34,20 +34,23 @@ interface VentureItem {
 
 const MODULES = [
   { id: 'full-launch',  label: 'Full Launch',  icon: '⬡', accent: '#C4975A' },
+  { id: 'launch-autopilot', label: 'Launch Autopilot', icon: '▶', accent: '#B8864E' },
   { id: 'research',     label: 'Research',     icon: '◎', accent: '#5A8C6E' },
   { id: 'branding',     label: 'Branding',     icon: '◇', accent: '#5A6E8C' },
   { id: 'marketing',    label: 'Marketing',    icon: '▲', accent: '#8C5A7A' },
   { id: 'landing',      label: 'Landing Page', icon: '▣', accent: '#8C7A5A' },
   { id: 'feasibility',  label: 'Feasibility',  icon: '◈', accent: '#7A5A8C' },
   { id: 'general',      label: 'Co-pilot',     icon: '◉', accent: '#6B8F71' },
+  { id: 'shadow-board', label: 'Shadow Board', icon: '⚔', accent: '#E04848' },
+] as const
+
+const MODULE_GROUPS = [
+  { label: 'LAUNCH', ids: ['full-launch', 'launch-autopilot'] },
+  { label: 'AGENTS', ids: ['research', 'branding', 'marketing', 'landing', 'feasibility'] },
+  { label: 'TOOLS',  ids: ['general', 'shadow-board'] },
 ] as const
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function getInitials(name: string): string {
   return name
@@ -71,22 +74,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [appReady, setAppReady] = useState(false)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
-  const [expandedVentures, setExpandedVentures] = useState<Set<string>>(new Set())
 
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const newProjectRef = useRef<HTMLInputElement>(null)
-  const [showNewVenture, setShowNewVenture] = useState<string | null>(null)
-  const [newVentureName, setNewVentureName] = useState('')
-  const newVentureRef = useRef<HTMLInputElement>(null)
 
   // Rename state
   const [renamingProject, setRenamingProject] = useState<string | null>(null)
   const [renameProjectValue, setRenameProjectValue] = useState('')
   const renameProjectRef = useRef<HTMLInputElement>(null)
-  const [renamingVenture, setRenamingVenture] = useState<string | null>(null)
-  const [renameVentureValue, setRenameVentureValue] = useState('')
-  const renameVentureRef = useRef<HTMLInputElement>(null)
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -170,7 +166,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     function handleVentureAdded(e: Event) {
       const venture = (e as CustomEvent).detail
       setVentures(prev => [venture, ...prev])
-      setExpandedVentures(prev => new Set(prev).add(venture.id))
     }
     function handleRefreshProjects() {
       // Reload projects and ventures when a new project is created externally
@@ -196,9 +191,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [router])
 
   useEffect(() => { if (showNewProject && newProjectRef.current) newProjectRef.current.focus() }, [showNewProject])
-  useEffect(() => { if (showNewVenture && newVentureRef.current) newVentureRef.current.focus() }, [showNewVenture])
   useEffect(() => { if (renamingProject && renameProjectRef.current) { renameProjectRef.current.focus(); renameProjectRef.current.select() } }, [renamingProject])
-  useEffect(() => { if (renamingVenture && renameVentureRef.current) { renameVentureRef.current.focus(); renameVentureRef.current.select() } }, [renamingVenture])
 
   // ─── Close mobile sidebar on route change ─────────────────────────────────
   useEffect(() => { setMobileOpen(false) }, [pathname])
@@ -230,46 +223,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }
 
-  async function submitNewVenture(projectId: string) {
-    const trimmed = newVentureName.trim()
-    if (!trimmed) { setShowNewVenture(null); setNewVentureName(''); return }
-    try {
-      const res = await fetch('/api/ventures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, projectId }),
-      })
-      if (res.ok) {
-        const venture: VentureItem = await res.json()
-        setVentures(prev => [venture, ...prev])
-        setExpandedVentures(prev => new Set(prev).add(venture.id))
-      } else {
-        const err = await res.json()
-        alert(`Error creating venture: ${err.error || 'Unknown error'}`)
-      }
-    } catch (e) {
-      alert(`Network error creating venture: ${e}`)
-    } finally {
-      setShowNewVenture(null)
-      setNewVentureName('')
-    }
-  }
-
   function handleProjectKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') { e.preventDefault(); submitNewProject() }
     else if (e.key === 'Escape') { setShowNewProject(false); setNewProjectName('') }
   }
 
-  function handleVentureKeyDown(e: KeyboardEvent<HTMLInputElement>, projectId: string) {
-    if (e.key === 'Enter') { e.preventDefault(); submitNewVenture(projectId) }
-    else if (e.key === 'Escape') { setShowNewVenture(null); setNewVentureName('') }
-  }
-
   function toggleProject(id: string) {
     setExpandedProjects(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function toggleVenture(id: string) {
-    setExpandedVentures(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
 
   function isModuleActive(ventureId: string, moduleId: string): boolean {
@@ -279,8 +239,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   function getVenturesForProject(projectId: string) {
     return ventures.filter(v => v.project_id === projectId)
   }
-
-  const unlinkedVentures = ventures.filter(v => !v.project_id)
 
   async function handleDeleteProject(id: string, e: React.MouseEvent) {
     e.stopPropagation()
@@ -296,22 +254,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
     } catch(err) {
       console.error('Failed to delete project', err)
-    }
-  }
-
-  async function handleDeleteVenture(id: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm('Delete this venture?')) return
-    try {
-      const res = await fetch(`/api/ventures/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setVentures(prev => prev.filter(v => v.id !== id))
-        if (pathname.includes(`/dashboard/venture/${id}`)) {
-          router.push('/dashboard')
-        }
-      }
-    } catch(err) {
-      console.error('Failed to delete venture', err)
     }
   }
 
@@ -339,32 +281,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     } finally {
       setRenamingProject(null)
       setRenameProjectValue('')
-    }
-  }
-
-  function startRenameVenture(id: string, currentName: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    setRenamingVenture(id)
-    setRenameVentureValue(currentName)
-  }
-
-  async function submitRenameVenture() {
-    const trimmed = renameVentureValue.trim()
-    if (!trimmed || !renamingVenture) { setRenamingVenture(null); return }
-    try {
-      const res = await fetch(`/api/ventures/${renamingVenture}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed }),
-      })
-      if (res.ok) {
-        setVentures(prev => prev.map(v => v.id === renamingVenture ? { ...v, name: trimmed } : v))
-      }
-    } catch (err) {
-      console.error('Failed to rename venture', err)
-    } finally {
-      setRenamingVenture(null)
-      setRenameVentureValue('')
     }
   }
 
@@ -721,22 +637,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
                             }}>{proj.name}</span>
-                            <span
-                              className="group-hover:hidden"
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                color: 'var(--muted)',
-                                background: 'var(--nav-active)',
-                                padding: '1px 6px',
-                                borderRadius: 6,
-                                flexShrink: 0,
-                                border: '1px solid var(--border)',
-                                opacity: projVentures.length > 0 ? 1 : 0.4,
-                              }}
-                            >
-                              {projVentures.length}
-                            </span>
                             <button
                               onClick={(e) => startRenameProject(proj.id, proj.name, e)}
                               className="hidden group-hover:flex"
@@ -762,15 +662,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                           </motion.div>
                           )}
 
-                          {/* Ventures under project */}
+                          {/* Modules directly under project */}
                           {mounted && (
                             <AnimatePresence>
-                              {isOpen && (
+                              {isOpen && projVentures.length > 0 && (() => {
+                                const v = projVentures[0]
+                                return (
                                 <motion.div
                                   style={{
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: 1,
+                                    gap: 0,
                                     marginLeft: 14,
                                     marginTop: 2,
                                     paddingLeft: 10,
@@ -782,321 +684,103 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                                 >
-                                  {projVentures.map(v => {
-                                    const vOpen = expandedVentures.has(v.id)
+                                  {/* Master Dossier Link */}
+                                  <motion.button
+                                    initial={{ opacity: 0, x: -4 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
+                                    onClick={() => router.push(`/dashboard/venture/${v.id}`)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                      padding: '6px 8px',
+                                      borderRadius: 6,
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      fontFamily: 'inherit',
+                                      transition: 'background 150ms ease',
+                                      background: pathname === `/dashboard/venture/${v.id}` ? 'var(--nav-active)' : 'transparent',
+                                      borderLeft: pathname === `/dashboard/venture/${v.id}` ? '2px solid var(--accent)' : '2px solid transparent',
+                                      marginBottom: 2,
+                                    }}
+                                  >
+                                    <span style={{ color: 'var(--accent)', fontSize: 11, width: 14, textAlign: 'center' }}>★</span>
+                                    <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 700 }}>Master Dossier</span>
+                                  </motion.button>
+
+                                  {/* Grouped modules */}
+                                  {MODULE_GROUPS.map((group, groupIndex) => {
+                                    const groupModules = group.ids.map(id => MODULES.find(m => m.id === id)!).filter(Boolean)
                                     return (
-                                      <div key={v.id} className="flex flex-col">
-                                        {renamingVenture === v.id ? (
-                                          <motion.input
-                                            ref={renameVentureRef}
-                                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                                            value={renameVentureValue}
-                                            onChange={e => setRenameVentureValue(e.target.value)}
-                                            onKeyDown={e => {
-                                              if (e.key === 'Enter') { e.preventDefault(); submitRenameVenture() }
-                                              else if (e.key === 'Escape') { setRenamingVenture(null) }
-                                            }}
-                                            onBlur={() => submitRenameVenture()}
-                                            style={{ ...newInputStyle, height: 28, fontSize: 11, margin: '1px 0' }}
-                                          />
-                                        ) : (
-                                        <motion.div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="group"
-                                          onClick={() => toggleVenture(v.id)}
-                                          onKeyDown={e => e.key === 'Enter' && toggleVenture(v.id)}
-                                          whileHover={{ backgroundColor: 'var(--nav-active)' }}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 5,
-                                            padding: '5px 6px',
-                                            borderRadius: 6,
-                                            border: 'none',
-                                            background: 'transparent',
-                                            cursor: 'pointer',
-                                            width: '100%',
-                                            textAlign: 'left',
-                                            fontFamily: 'inherit',
-                                            opacity: vOpen ? 1 : 0.72,
-                                          }}
-                                        >
-                                          <motion.svg
-                                            width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                            animate={{ rotate: vOpen ? 90 : 0 }}
-                                            transition={{ duration: 0.18, ease: 'easeInOut' }}
-                                            style={{ flexShrink: 0 }}
-                                          >
-                                            <polyline points="9 18 15 12 9 6" />
-                                          </motion.svg>
-                                          <span style={{
-                                            flex: 1,
-                                            fontSize: 12,
-                                            fontWeight: 500,
-                                            color: 'var(--text)',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                          }}>{v.name}</span>
-                                          <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }} className="group-hover:hidden">{formatDate(v.created_at)}</span>
-                                          <button
-                                            onClick={(e) => startRenameVenture(v.id, v.name, e)}
-                                            className="hidden group-hover:flex"
-                                            style={deleteButtonStyle}
-                                            title="Rename venture"
-                                            aria-label={`Rename venture ${v.name}`}
-                                          >
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
-                                            </svg>
-                                          </button>
-                                          <button
-                                            onClick={(e) => handleDeleteVenture(v.id, e)}
-                                            className="hidden group-hover:flex"
-                                            style={deleteButtonStyle}
-                                            title="Delete venture"
-                                            aria-label={`Delete venture ${v.name}`}
-                                          >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                              <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                          </button>
-                                        </motion.div>
+                                      <div key={group.label}>
+                                        {groupIndex > 0 && (
+                                          <div style={{ height: 1, background: 'var(--border)', margin: '4px 6px', opacity: 0.6 }} />
                                         )}
-  
-                                        {/* Modules */}
-                                        {mounted && (
-                                          <AnimatePresence>
-                                          {vOpen && (
-                                            <motion.div
+                                        <div style={{
+                                          fontSize: 9,
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase' as const,
+                                          letterSpacing: '0.06em',
+                                          color: 'var(--muted)',
+                                          padding: '6px 8px 3px',
+                                          opacity: 0.6,
+                                        }}>
+                                          {group.label}
+                                        </div>
+                                        {groupModules.map((m, idx) => {
+                                          const active = isModuleActive(v.id, m.id)
+                                          return (
+                                            <motion.button
+                                              key={m.id}
+                                              initial={{ opacity: 0, x: -4 }}
+                                              animate={{ opacity: 1, x: 0 }}
+                                              transition={{ delay: idx * 0.03 }}
+                                              whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
+                                              onClick={() => router.push(`/dashboard/venture/${v.id}/${m.id}`)}
+                                              aria-label={`Open ${m.label} module`}
+                                              aria-current={active ? 'page' : undefined}
                                               style={{
                                                 display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: 1,
-                                                marginLeft: 12,
-                                                marginTop: 2,
-                                                paddingLeft: 8,
-                                                borderLeft: '1px solid var(--border)',
-                                                overflow: 'hidden',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                padding: '5px 8px',
+                                                borderRadius: 6,
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                fontFamily: 'inherit',
+                                                transition: 'background 150ms ease',
+                                                background: active ? `${m.accent}12` : 'transparent',
+                                                borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
                                               }}
-                                              initial={{ height: 0, opacity: 0 }}
-                                              animate={{ height: 'auto', opacity: 1 }}
-                                              exit={{ height: 0, opacity: 0 }}
-                                              transition={{ duration: 0.16 }}
                                             >
-                                              {/* Master Dossier Link */}
-                                              <motion.button
-                                                initial={{ opacity: 0, x: -4 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
-                                                onClick={() => router.push(`/dashboard/venture/${v.id}`)}
-                                                style={{
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: 6,
-                                                  padding: '6px 8px',
-                                                  borderRadius: 6,
-                                                  border: 'none',
-                                                  cursor: 'pointer',
-                                                  width: '100%',
-                                                  textAlign: 'left',
-                                                  fontFamily: 'inherit',
-                                                  transition: 'background 150ms ease',
-                                                  background: pathname === `/dashboard/venture/${v.id}` ? 'var(--nav-active)' : 'transparent',
-                                                  borderLeft: pathname === `/dashboard/venture/${v.id}` ? '2px solid var(--accent)' : '2px solid transparent',
-                                                  marginBottom: 4,
-                                                }}
-                                              >
-                                                <span style={{ color: 'var(--accent)', fontSize: 11, width: 14, textAlign: 'center' }}>★</span>
-                                                <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 700 }}>Master Dossier</span>
-                                              </motion.button>
-  
-                                              {MODULES.map((m, idx) => {
-                                                const active = isModuleActive(v.id, m.id)
-                                                return (
-                                                  <motion.button
-                                                    key={m.id}
-                                                    initial={{ opacity: 0, x: -4 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: idx * 0.03 }}
-                                                    whileHover={{ backgroundColor: 'var(--nav-active)', x: 1 }}
-                                                    onClick={() => router.push(`/dashboard/venture/${v.id}/${m.id}`)}
-                                                    aria-label={`Open ${m.label} module`}
-                                                    aria-current={active ? 'page' : undefined}
-                                                    style={{
-                                                      display: 'flex',
-                                                      alignItems: 'center',
-                                                      gap: 6,
-                                                      padding: '5px 8px',
-                                                      borderRadius: 6,
-                                                      border: 'none',
-                                                      cursor: 'pointer',
-                                                      width: '100%',
-                                                      textAlign: 'left',
-                                                      fontFamily: 'inherit',
-                                                      transition: 'background 150ms ease',
-                                                      background: active ? `${m.accent}12` : 'transparent',
-                                                      borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
-                                                    }}
-                                                  >
-                                                    <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
-                                                    <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
-                                                    {active && (
-                                                      <motion.div
-                                                        layoutId="module-active-dot"
-                                                        style={{ width: 4, height: 4, borderRadius: '50%', background: m.accent, marginLeft: 'auto', flexShrink: 0 }}
-                                                      />
-                                                    )}
-                                                  </motion.button>
-                                                )
-                                              })}
-                                            </motion.div>
-                                          )}
-                                          </AnimatePresence>
-                                        )}
+                                              <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
+                                              <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
+                                              {active && (
+                                                <motion.div
+                                                  layoutId="module-active-dot"
+                                                  style={{ width: 4, height: 4, borderRadius: '50%', background: m.accent, marginLeft: 'auto', flexShrink: 0 }}
+                                                />
+                                              )}
+                                            </motion.button>
+                                          )
+                                        })}
                                       </div>
                                     )
                                   })}
-  
-                                  {/* Venture creation removed — ventures are auto-created from greeting flow */}
                                 </motion.div>
-                              )}
+                                )
+                              })()}
                             </AnimatePresence>
                           )}
                         </motion.div>
                       )
                     })}
 
-                    {/* Unlinked ventures (legacy) */}
-                    {unlinkedVentures.length > 0 && (
-                      <>
-                        <p style={{ ...sectionLabelStyle, paddingTop: 14 }}>VENTURES</p>
-                        {unlinkedVentures.map(v => {
-                          const vOpen = expandedVentures.has(v.id)
-                          return (
-                            <div key={v.id} className="flex flex-col">
-                              <motion.div
-                                role="button"
-                                tabIndex={0}
-                                className="group"
-                                onClick={() => toggleVenture(v.id)}
-                                onKeyDown={e => e.key === 'Enter' && toggleVenture(v.id)}
-                                whileHover={{ backgroundColor: 'var(--nav-active)' }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  padding: '5px 8px',
-                                  borderRadius: 6,
-                                  border: 'none',
-                                  background: 'transparent',
-                                  cursor: 'pointer',
-                                  width: '100%',
-                                  textAlign: 'left',
-                                  fontFamily: 'inherit',
-                                  opacity: vOpen ? 1 : 0.72,
-                                }}
-                              >
-                                <motion.svg
-                                  width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                  animate={{ rotate: vOpen ? 90 : 0 }}
-                                  transition={{ duration: 0.18 }}
-                                  style={{ flexShrink: 0 }}
-                                >
-                                  <polyline points="9 18 15 12 9 6" />
-                                </motion.svg>
-                                <span style={{
-                                  flex: 1,
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  color: 'var(--text)',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}>{v.name}</span>
-                                <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0 }} className="group-hover:hidden">{formatDate(v.created_at)}</span>
-                                <button
-                                  onClick={(e) => startRenameVenture(v.id, v.name, e)}
-                                  className="hidden group-hover:flex"
-                                  style={deleteButtonStyle}
-                                  title="Rename venture"
-                                >
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={(e) => handleDeleteVenture(v.id, e)}
-                                  className="hidden group-hover:flex"
-                                  style={deleteButtonStyle}
-                                  title="Delete venture"
-                                >
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                  </svg>
-                                </button>
-                              </motion.div>
-                              {mounted && (
-                                <AnimatePresence>
-                                  {vOpen && (
-                                    <motion.div
-                                      style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        marginLeft: 12,
-                                        marginTop: 2,
-                                        paddingLeft: 8,
-                                        borderLeft: '1px solid var(--border)',
-                                        overflow: 'hidden',
-                                      }}
-                                      initial={{ height: 0, opacity: 0 }}
-                                      animate={{ height: 'auto', opacity: 1 }}
-                                      exit={{ height: 0, opacity: 0 }}
-                                      transition={{ duration: 0.15 }}
-                                    >
-                                      {MODULES.map(m => {
-                                        const active = isModuleActive(v.id, m.id)
-                                        return (
-                                          <motion.button
-                                            key={m.id}
-                                            whileHover={{ backgroundColor: 'var(--nav-active)' }}
-                                            onClick={() => {
-                                              startTransition(() => {
-                                                router.push(`/dashboard/venture/${v.id}/${m.id}`)
-                                              })
-                                            }}
-                                            style={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 6,
-                                              padding: '5px 8px',
-                                              borderRadius: 6,
-                                              border: 'none',
-                                              cursor: 'pointer',
-                                              width: '100%',
-                                              textAlign: 'left',
-                                              fontFamily: 'inherit',
-                                              transition: 'background 150ms ease',
-                                              background: active ? `${m.accent}12` : 'transparent',
-                                              borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
-                                            }}
-                                          >
-                                            <span style={{ color: m.accent, fontSize: 11, lineBreak: 'anywhere', width: 14, textAlign: 'center' as const }}>{m.icon}</span>
-                                            <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
-                                          </motion.button>
-                                        )
-                                      })}
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </>
-                    )}
                   </motion.div>
                 )}
               </motion.div>
@@ -1418,13 +1102,3 @@ const newInputStyle: React.CSSProperties = {
   boxShadow: 'var(--shadow-input)',
 }
 
-const sectionLabelStyle: React.CSSProperties = {
-  padding: '14px 8px 4px',
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: '0.1em',
-  color: 'var(--muted)',
-  opacity: 0.5,
-  textTransform: 'uppercase',
-  margin: 0,
-}
