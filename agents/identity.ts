@@ -5,6 +5,7 @@ import {
     extractJSON,
     withTimeout,
     withRetry,
+    Content,
 } from '@/lib/gemini'
 
 // ── IdentityOutput Zod Schema ────────────────────────────────────────────────
@@ -198,7 +199,8 @@ IMPORTANT: Do not output any conversational text or "Thought Process" headers. A
 export async function runIdentityAgent(
     venture: { ventureId: string; name: string; globalIdea?: string; context: Record<string, unknown> },
     onStream: (line: string) => Promise<void>,
-    onComplete: (result: IdentityOutput) => Promise<void>
+    onComplete: (result: IdentityOutput) => Promise<void>,
+    history: Content[] = []
 ): Promise<void> {
     const hasResearch = !!venture.context.research
 
@@ -207,7 +209,10 @@ export async function runIdentityAgent(
     if (venture.globalIdea) contextParts.push(`Global Startup Vision: ${venture.globalIdea}`)
     if (hasResearch) contextParts.push(`Market research (use this to ground every brand decision):\n${JSON.stringify(venture.context.research, null, 2)}`)
 
-    const userMessage = `Build a complete Brand Bible for this venture.
+    const isContinuation = history.length > 0
+    const userMessage = isContinuation
+        ? "Continue from where you left off. Do not repeat anything already outputted. Complete the IdentityOutput JSON object strictly."
+        : `Build a complete Brand Bible for this venture.
 
 ${contextParts.join('\n\n')}
 
@@ -221,7 +226,7 @@ Output the full IdentityOutput JSON at the end.`
 
     const run = async () => {
         const model = getFlashModel()
-        let fullText = ''
+        let fullText = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
 
         await streamPrompt(
             model,
@@ -230,7 +235,8 @@ Output the full IdentityOutput JSON at the end.`
             async (chunk) => {
                 fullText += chunk
                 await onStream(chunk)
-            }
+            },
+            history
         )
 
         const raw = extractJSON(fullText)
