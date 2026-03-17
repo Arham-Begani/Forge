@@ -5,6 +5,7 @@ import {
     extractJSON,
     withTimeout,
     withRetry,
+    Content,
 } from '@/lib/gemini'
 
 // ── ShadowBoard Zod Schema ───────────────────────────────────────────────────
@@ -69,22 +70,31 @@ You are the "Shadow Board" for a new venture. Your job is not to be nice. Your j
 3. Be brutally honest. If the idea is bad, say it. If it's a hidden gem, tell them exactly how to polish it.
 4. Generate 5 synthetic user interviews from the target demographic identified in the research.
 
-## Output Structure
+## Output Requirements
 
-You must output a single JSON object with the following:
-- **survivalScore**: A conservative 1-100 score on likelihood of reaching $1M ARR in 2 years.
-- **verdictLabel**: A punchy 2-3 word summary.
-- **boardDialogue**: Three specific "takes" from the board members.
-- **strategicPivots**: 3 ways the venture *should* change to survive.
-- **syntheticFeedback**: 5 quotes from hypothetical users in the target niche.
+You must output a single JSON object with EXACTLY this structure:
+{
+  "survivalScore": number (1-100),
+  "verdictLabel": "string",
+  "boardDialogue": [
+    { "role": "The Skeptic" | "The Evangelist" | "The Alchemist", "thought": "string", "brutalHonesty": "string" }
+  ],
+  "strategicPivots": [
+    { "currentPath": "string", "betterPath": "string", "rationale": "string" }
+  ],
+  "syntheticFeedback": [
+    { "persona": "string", "quote": "string", "sentiment": "positive" | "neutral" | "negative", "criticalFlaw": "string" }
+  ]
+}
 
 ## Rules
 
 - NEVER use corporate jargon like "deliverables" or "synergy".
 - Speak like high-level Silicon Valley operators.
 - The tone should be intense, intellectual, and slightly aggressive.
-- Output ONLY the JSON at the very end.
+- Output ONLY the raw JSON at the very end. No Markdown fences around the JSON.
 - Use <think> tags for your internal persona debate before the final JSON.
+- Ensure sentiments are exactly "positive", "neutral", or "negative" (lowercase).
 `
 
 // ── Agent Runner ──────────────────────────────────────────────────────────────
@@ -92,7 +102,8 @@ You must output a single JSON object with the following:
 export async function runShadowBoard(
     venture: { ventureId: string; name: string; globalIdea?: string; context: Record<string, unknown> },
     onStream: (line: string) => Promise<void>,
-    onComplete: (result: ShadowBoardOutput) => Promise<void>
+    onComplete: (result: ShadowBoardOutput) => Promise<void>,
+    history: Content[] = []
 ): Promise<void> {
     const researchContext = venture.context.research ? JSON.stringify(venture.context.research, null, 2) : 'No research data available — analyze based on the venture concept.'
     const brandingContext = venture.context.branding ? JSON.stringify(venture.context.branding, null, 2) : 'No branding data available.'
@@ -114,23 +125,30 @@ ${feasibilityContext}
 
 Provide the final verdict and the board dialogue. Be brutal.`
 
+    const isContinuation = history.length > 0
+    const finalUserMessage = isContinuation
+        ? "Continue from where you left off. Do not repeat anything already outputted. Complete the ShadowBoard output JSON strictly."
+        : userMessage
+
     const runAgentAction = async () => {
         const model = getProModelWithThinking(10000)
-        let fullText = ''
+        let fullText = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
 
         await streamPrompt(
             model,
             SYSTEM_PROMPT,
-            userMessage,
+            finalUserMessage,
             async (chunk) => {
                 fullText += chunk
                 await onStream(chunk)
-            }
+            },
+            history
         )
 
         try {
             const raw = extractJSON(fullText)
-            const validated = ShadowBoardSchema.parse(raw)
+            // Use defaults if parsing fails completely, rather than crashing
+            const validated = ShadowBoardSchema.parse(raw || {})
             await onComplete(validated)
         } catch (e) {
             console.error('ShadowBoard JSON Parse Error:', e)
@@ -138,8 +156,12 @@ Provide the final verdict and the board dialogue. Be brutal.`
         }
     }
 
-    await withTimeout(
-        withRetry(runAgentAction),
-        Number(process.env.AGENT_TIMEOUT_MS ?? 120000)
+    // Wrap withRetry around withTimeout so each attempt has its own timeout window
+    await withRetry(
+        () => withTimeout(
+            runAgentAction(),
+            Number(process.env.AGENT_TIMEOUT_MS ?? 120000)
+        ),
+        1 // 1 retry = 2 attempts total
     )
 }
