@@ -4,6 +4,7 @@ import {
     streamPrompt,
     extractJSON,
     withTimeout,
+    Content,
 } from '@/lib/gemini'
 
 // ── Investor Kit Output Schema ──────────────────────────────────────────────
@@ -104,6 +105,7 @@ export async function runInvestorKitAgent(
     venture: VentureInput,
     onStream: (chunk: string) => Promise<void>,
     onComplete: (result: InvestorKitOutput) => Promise<void>,
+    history: Content[] = []
 ): Promise<void> {
     const model = getFlashModel()
 
@@ -132,7 +134,10 @@ export async function runInvestorKitAgent(
         contextParts.push(`Landing Page:\n${JSON.stringify(landingSummary, null, 2)}`)
     }
 
-    const userMessage = `Generate an investor-ready kit for this venture.
+    const isContinuation = history.length > 0
+    const finalUserMessage = isContinuation
+        ? "Continue from where you left off. Do not repeat anything already outputted. Complete the InvestorKitOutput JSON object strictly."
+        : `Generate an investor-ready kit for this venture.
 
 Venture: ${venture.name}
 
@@ -141,11 +146,17 @@ ${contextParts.join('\n\n')}
 Produce the complete InvestorKitOutput JSON.`
 
     const run = async () => {
-        const fullText = await streamPrompt(
+        let fullText = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
+
+        await streamPrompt(
             model,
             SYSTEM_PROMPT,
-            userMessage,
-            onStream,
+            finalUserMessage,
+            async (chunk) => {
+                fullText += chunk
+                await onStream(chunk)
+            },
+            history
         )
 
         const raw = extractJSON(fullText)
