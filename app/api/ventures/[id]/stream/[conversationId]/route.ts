@@ -4,6 +4,7 @@ import { getVenture, getConversation } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300
 
 export async function GET(
     request: NextRequest,
@@ -28,6 +29,8 @@ export async function GET(
             async start(controller) {
                 let lastLineIndex = 0
                 let done = false
+                const maxPollDuration = 5 * 60 * 1000 // 5 minutes
+                const startTime = Date.now()
 
                 const send = (data: object) => {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
@@ -36,6 +39,10 @@ export async function GET(
                 // Poll every 400ms
                 while (!done) {
                     if (request.signal.aborted) break
+                    if (Date.now() - startTime > maxPollDuration) {
+                        send({ type: 'error', message: 'Stream timeout — agent took too long' })
+                        break
+                    }
 
                     const conv = await getConversation(conversationId)
                     if (!conv) break
