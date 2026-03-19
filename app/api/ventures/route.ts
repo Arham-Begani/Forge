@@ -1,5 +1,6 @@
 // app/api/ventures/route.ts
 import { requireAuth, AuthError, isAuthError } from '@/lib/auth'
+import { BillingError, assertCanCreateVenture } from '@/lib/billing-queries'
 import { getVenturesByUser, createVenture } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -25,10 +26,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid name' }, { status: 400 })
         }
 
+        await assertCanCreateVenture(session.userId)
         const venture = await createVenture(session.userId, name, projectId)
         return NextResponse.json(venture, { status: 201 })
     } catch (e) {
         if (isAuthError(e)) return e.toResponse()
+        if (e instanceof BillingError) {
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status })
+        }
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }
