@@ -32,7 +32,7 @@ export const ALL_BILLING_MODULES: BillingModuleId[] = [
 export const UNLIMITED_BILLING_CREDIT_BALANCE = 1_000_000_000
 export const UNLIMITED_BILLING_VENTURE_LIMIT = 1_000_000
 
-const DEFAULT_UNLIMITED_BILLING_EMAILS = ['arhambegani2@gmail.com']
+const DEFAULT_UNLIMITED_BILLING_EMAILS: string[] = []
 
 export interface BillingPlan {
   slug: PlanSlug
