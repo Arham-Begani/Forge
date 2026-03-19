@@ -14,7 +14,16 @@
       "Bash(ls C:/Users/arham/Documents/Github/Forge/app/api/ventures/\\\\[id\\\\]/ 2>/dev/null)",
       "Bash(ls:*)",
       "Bash(pkill:*)",
-      "Bash(npx skills:*)"
+      "Bash(npx skills:*)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge\\\\app\\\\api\\\\cohorts\\\\[id]\\\\generate-variants\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge\\\\app\\\\api\\\\cohorts\\\\[id]\\\\launch\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\arham\\\\Documents\\\\Github\\\\Forge\\\\app\\\\api\\\\cohorts\\\\[id]\\\\pick-winner\")",
+      "Bash(python3:*)",
+      "Bash(find /c/Users/arham/Documents/Github/Forge -name .env* -type f)",
+      "Bash(grep:*)",
+      "Bash(find /c/Users/arham/Documents/Github/Forge -type f \\\\\\(-name *.log -o -name *error* -o -name *debug* \\\\\\))",
+      "Bash(find /c/Users/arham/Documents/Github/Forge -type f -name .env*)",
+      "Bash(npm ls:*)"
     ]
   }
 }
