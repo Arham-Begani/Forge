@@ -8,11 +8,12 @@ import {
   type KeyboardEvent,
   type FormEvent,
 } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AgentStatusRow } from '@/components/ui/AgentStatusRow'
 import { ResultCard } from '@/components/ui/ResultCard'
 import ReactMarkdown from 'react-markdown'
+import { getModuleCost } from '@/lib/billing'
 import { downloadPDFFromResult, downloadPDFFromElement } from '@/lib/client-pdf'
 
 // ─── Module metadata (mirrors ModulePicker) ──────────────────────────────────
@@ -34,6 +35,21 @@ type ModuleId = typeof MODULES[number]['id']
 
 function getModule(id: string) {
   return MODULES.find(m => m.id === id) ?? MODULES[0]
+}
+
+function getEntryErrorMessage(lines: string[], agentName: string): string {
+  const explicitMessage = [...lines]
+    .reverse()
+    .map((line) => line.trim())
+    .find(Boolean)
+
+  if (!explicitMessage) {
+    return `The ${agentName} agent encountered an error while processing your request. This could be due to a timeout or service issue.`
+  }
+
+  return explicitMessage
+    .replace(/^\[Error:\s*/i, '')
+    .replace(/\]$/, '')
 }
 
 // ─── Suggestions ─────────────────────────────────────────────────────────────
@@ -79,6 +95,15 @@ interface ConversationEntry {
   result: Record<string, unknown> | null
   isRunning: boolean
   isError: boolean
+}
+
+interface BillingSummary {
+  planSlug: string
+  planLabel: string
+  creditsRemaining: number
+  allowedModules: string[]
+  nextRenewalAt: string | null
+  hasUnlimitedAccess: boolean
 }
 
 // ─── Module icon SVG ──────────────────────────────────────────────────────────
@@ -262,6 +287,7 @@ function StreamPanel({ lines, accent }: { lines: string[]; accent: string }) {
 
 export default function ModulePage() {
   const params = useParams()
+  const router = useRouter()
   const ventureId = params.id as string
   const moduleParam = params.module as string
 
@@ -284,10 +310,37 @@ export default function ModulePage() {
   const [investorKit, setInvestorKit] = useState<any>(null)
   const [generatingKit, setGeneratingKit] = useState(false)
   const [kitError, setKitError] = useState<string | null>(null)
+  const [billing, setBilling] = useState<BillingSummary | null>(null)
+  const [billingLoaded, setBillingLoaded] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const loadBilling = useCallback(async () => {
+    try {
+      const res = await fetch('/api/billing/me')
+      if (!res.ok) return
+      const data = await res.json()
+      setBilling({
+        planSlug: data.planSlug,
+        planLabel: data.planLabel,
+        creditsRemaining: data.creditsRemaining,
+        allowedModules: data.allowedModules ?? [],
+        nextRenewalAt: data.nextRenewalAt ?? null,
+        hasUnlimitedAccess: !!data.hasUnlimitedAccess,
+      })
+    } catch {
+      // Ignore local billing fetch issues here; the server still enforces access.
+    } finally {
+      setBillingLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadBilling()
+  }, [loadBilling])
 
   const [depth, setDepth] = useState<'brief' | 'medium' | 'detailed'>(() => {
     if (typeof window === 'undefined') return 'medium'
@@ -327,6 +380,8 @@ export default function ModulePage() {
 
   const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [readingPanelOpen, setReadingPanelOpen] = useState(true)
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+  const [previewShowCode, setPreviewShowCode] = useState(false)
   const [isDocumentOpen, setIsDocumentOpen] = useState(false)
 
   // ── Decision Bar state ──────────────────────────────────────────────
@@ -494,6 +549,12 @@ export default function ModulePage() {
     e?.preventDefault()
     const text = prompt.trim()
     if (!text || isSubmitting || isLoadingQuestions) return
+    const guardMessage = getRunGuardMessage()
+    if (guardMessage) {
+      setRunError(guardMessage)
+      return
+    }
+    setRunError(null)
 
     // For question-eligible modules, fetch questions first
     if (QUESTION_MODULES.includes(activeModule) && !decisionBarActive) {
@@ -527,6 +588,11 @@ export default function ModulePage() {
   }
 
   function handleDecisionSubmit() {
+    const guardMessage = getRunGuardMessage()
+    if (guardMessage) {
+      setRunError(guardMessage)
+      return
+    }
     const decisions: UserDecision[] = pendingQuestions.map(q => {
       const answer = selectedAnswers[q.id]
       return {
@@ -544,13 +610,18 @@ export default function ModulePage() {
   }
 
   function handleSkipQuestions() {
+    const guardMessage = getRunGuardMessage()
+    if (guardMessage) {
+      setRunError(guardMessage)
+      return
+    }
     setDecisionBarActive(false)
     setPendingQuestions([])
     executeRun(pendingPrompt)
   }
 
   async function executeRun(text: string, decisions?: UserDecision[], isContinuation = false, partialOutput?: string) {
-    setPrompt('')
+    setRunError(null)
     setIsSubmitting(true)
 
     const entryId = crypto.randomUUID()
@@ -572,8 +643,15 @@ export default function ModulePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ moduleId: activeModule, prompt: text, depth, decisions, isContinuation, partialOutput }),
       })
-      if (!runRes.ok) throw new Error('Failed to start run')
+      if (!runRes.ok) {
+        const errorData = await runRes.json().catch(() => null)
+        throw new Error(errorData?.error || 'Failed to start run')
+      }
       const { conversationId: serverConversationId } = await runRes.json()
+      setPrompt('')
+      if (!isContinuation) {
+        void loadBilling()
+      }
 
       function updateEntry(patch: Partial<ConversationEntry> | ((e: ConversationEntry) => Partial<ConversationEntry>)) {
         setConversations(prev => prev.map(c => {
@@ -588,6 +666,7 @@ export default function ModulePage() {
       ))
 
       const es = new EventSource(`/api/ventures/${ventureId}/stream/${serverConversationId}`)
+      let streamDone = false
 
       es.addEventListener('message', (e: MessageEvent) => {
         try {
@@ -603,10 +682,12 @@ export default function ModulePage() {
               },
             }))
           } else if (data.type === 'complete') {
+            streamDone = true
             updateEntry({ isRunning: false, result: data.result, agentStatuses: buildCompletedStatuses(mod.accent) })
             es.close()
             setIsSubmitting(false)
           } else if (data.type === 'error') {
+            streamDone = true
             updateEntry({ isRunning: false, isError: true })
             es.close()
             setIsSubmitting(false)
@@ -617,17 +698,35 @@ export default function ModulePage() {
       })
 
       es.addEventListener('error', () => {
-        updateEntry({ isRunning: false, isError: true })
-        es.close()
-        setIsSubmitting(false)
+        if (streamDone) return
+        // EventSource fires 'error' on normal server-side close too.
+        // Delay briefly then poll actual conversation status before declaring failure.
+        setTimeout(async () => {
+          if (streamDone) return
+          try {
+            const checkRes = await fetch(`/api/ventures/${ventureId}/stream/${serverConversationId}`)
+            if (checkRes.ok) {
+              // Server is still reachable — re-read events from a fresh connection
+              // This handles transient disconnects. If the agent already completed
+              // or failed, the new SSE stream will send the terminal event immediately.
+              return
+            }
+          } catch { /* network truly down */ }
+          updateEntry({ isRunning: false, isError: true })
+          es.close()
+          setIsSubmitting(false)
+        }, 2000)
       })
 
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to start run'
+      setRunError(message)
       setConversations(prev => prev.map(c => {
         if (c.conversationId !== entryId) return c
-        return { ...c, isRunning: false, isError: true }
+        return { ...c, isRunning: false, isError: true, lines: message ? [message] : c.lines }
       }))
       setIsSubmitting(false)
+      void loadBilling()
     }
   }
 
@@ -656,16 +755,38 @@ export default function ModulePage() {
     setPendingQuestions([])
     setSelectedAnswers({})
     setIsLoadingQuestions(false)
+    setPreviewShowCode(false)
+    setPreviewDevice('desktop')
+    setRunError(null)
   }, [activeModule])
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const hasMessages = conversations.length > 0 && historyLoaded
+  const moduleCreditCost = getModuleCost(activeModule)
+  const moduleLocked = !!billing && !billing.allowedModules.includes(activeModule)
+  const hasEnoughCredits = !billing || billing.hasUnlimitedAccess || billing.creditsRemaining >= moduleCreditCost
+  const creditsShortfall = billing && !billing.hasUnlimitedAccess ? Math.max(moduleCreditCost - billing.creditsRemaining, 0) : 0
+  const canAccessInvestorKit = !billing || billing.allowedModules.includes('investor-kit')
 
-  const canSubmit = !!prompt.trim() && !isSubmitting && !isLoadingQuestions
+  function getRunGuardMessage() {
+    if (moduleLocked) {
+      return `${mod.label} is locked on your ${billing?.planLabel ?? 'current'} plan. Upgrade in Billing to unlock it.`
+    }
+    if (billing && !hasEnoughCredits) {
+      return `You need ${creditsShortfall} more credit${creditsShortfall === 1 ? '' : 's'} to run ${mod.label}. Open Billing to top up.`
+    }
+    return null
+  }
+
+  const canSubmit = !!prompt.trim() && !isSubmitting && !isLoadingQuestions && !moduleLocked && hasEnoughCredits
 
   // Compute latest result for reading panel
   const latestResult = [...conversations].reverse().find(c => c.result && Object.keys(c.result).length > 0)?.result as Record<string, any> | null
-  const showReadingPanel = readingPanelOpen && latestResult !== null && activeModule !== 'general'
+  const landingFullComponent = activeModule === 'landing' && latestResult
+    ? (latestResult.landing?.fullComponent || latestResult.fullComponent || null) as string | null
+    : null
+  const showLandingPreview = readingPanelOpen && landingFullComponent !== null
+  const showReadingPanel = readingPanelOpen && latestResult !== null && activeModule !== 'general' && !showLandingPreview
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', position: 'relative' }}>
@@ -770,8 +891,18 @@ export default function ModulePage() {
 
           {/* Investor Kit button */}
           <motion.button
-            onClick={() => investorKit ? window.open(`/investor/${investorKit.access_code}`, '_blank') : handleGenerateKit()}
-            disabled={generatingKit}
+            onClick={() => {
+              if (investorKit) {
+                window.open(`/investor/${investorKit.access_code}`, '_blank')
+                return
+              }
+              if (!canAccessInvestorKit) {
+                router.push('/dashboard/settings')
+                return
+              }
+              handleGenerateKit()
+            }}
+            disabled={generatingKit || (!investorKit && !canAccessInvestorKit)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -781,7 +912,7 @@ export default function ModulePage() {
               fontSize: 12,
               fontWeight: 600,
               letterSpacing: '-0.01em',
-              cursor: generatingKit ? 'wait' : 'pointer',
+              cursor: generatingKit ? 'wait' : (!investorKit && !canAccessInvestorKit ? 'not-allowed' : 'pointer'),
               border: investorKit ? `1.5px solid ${mod.accent}50` : '1.5px solid var(--border)',
               background: investorKit
                 ? `linear-gradient(135deg, ${mod.accent}15, ${mod.accent}08)`
@@ -791,10 +922,10 @@ export default function ModulePage() {
               color: investorKit ? mod.accent : 'var(--text-soft)',
               transition: 'all 0.2s',
               boxShadow: investorKit ? `0 2px 10px ${mod.accent}20` : 'none',
-              opacity: generatingKit ? 0.7 : 1,
+              opacity: generatingKit ? 0.7 : (!investorKit && !canAccessInvestorKit ? 0.55 : 1),
             }}
-            whileHover={generatingKit ? {} : { scale: 1.03, y: -1, boxShadow: `0 3px 12px ${mod.accent}18` }}
-            whileTap={generatingKit ? {} : { scale: 0.97 }}
+            whileHover={generatingKit || (!investorKit && !canAccessInvestorKit) ? {} : { scale: 1.03, y: -1, boxShadow: `0 3px 12px ${mod.accent}18` }}
+            whileTap={generatingKit || (!investorKit && !canAccessInvestorKit) ? {} : { scale: 0.97 }}
           >
             {generatingKit ? (
               <motion.div
@@ -807,7 +938,7 @@ export default function ModulePage() {
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
               </svg>
             )}
-            {generatingKit ? 'Generating Kit...' : investorKit ? 'Investor Kit' : 'Investor Kit'}
+            {generatingKit ? 'Generating Kit...' : investorKit ? 'Investor Kit' : canAccessInvestorKit ? 'Investor Kit' : 'Upgrade for Investor Kit'}
             {investorKit && (
               <span style={{
                 fontSize: 9,
@@ -883,6 +1014,72 @@ export default function ModulePage() {
       )}
 
       {/* ── Content area (chat + reading panel) ── */}
+      {(billingLoaded || runError) && (
+        <div
+          style={{
+            padding: '12px 20px',
+            borderBottom: '1px solid var(--border)',
+            background: moduleLocked || !hasEnoughCredits || runError ? 'rgba(224, 72, 72, 0.05)' : 'var(--glass-bg)',
+            zIndex: 4,
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              maxWidth: 1180,
+              margin: '0 auto',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'grid', gap: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: moduleLocked || !hasEnoughCredits || runError ? '#d85b5b' : mod.accent }}>
+                {billing
+                  ? `${billing.planLabel} plan • ${billing.creditsRemaining} credits left • ${moduleCreditCost} credits per new run`
+                  : 'Checking billing access for this module...'}
+              </div>
+              <div style={{ fontSize: 12, color: runError ? '#d85b5b' : 'var(--muted)', lineHeight: 1.5 }}>
+                {runError
+                  ? runError
+                  : moduleLocked
+                    ? `${mod.label} is viewable here, but new runs require a higher plan.`
+                    : billing && !hasEnoughCredits
+                      ? `You are ${creditsShortfall} credit${creditsShortfall === 1 ? '' : 's'} short for the next run.`
+                      : 'Billing is enforced server-side. Continuing an existing failed run does not consume new credits.'}
+              </div>
+            </div>
+            {(moduleLocked || (billing && !hasEnoughCredits) || runError) && (
+              <motion.button
+                type="button"
+                onClick={() => router.push('/dashboard/settings')}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  border: '1px solid var(--border)',
+                  background: 'var(--glass-bg-strong)',
+                  color: 'var(--text)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Open Billing
+              </motion.button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
       {/* ── Chat area ── */}
@@ -1187,7 +1384,7 @@ export default function ModulePage() {
                                 Agent run failed
                               </span>
                               <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, display: 'block' }}>
-                                The {mod.agentName} agent encountered an error while processing your request. This could be due to a timeout or service issue.
+                                {getEntryErrorMessage(entry.lines, mod.agentName)}
                               </span>
                             </div>
                           </div>
@@ -1247,13 +1444,29 @@ export default function ModulePage() {
         />
       )}
 
-      {/* ── Reading Panel (all modules) ── */}
+      {/* ── Reading Panel (all modules except landing with preview) ── */}
       {showReadingPanel && !timelineOpen && (
         <ReadingPanel
           moduleId={activeModule}
           result={latestResult!}
           accent={mod.accent}
           onClose={() => setReadingPanelOpen(false)}
+        />
+      )}
+
+      {/* ── Landing Page Live Preview ── */}
+      {showLandingPreview && !timelineOpen && (
+        <LandingPreviewPanel
+          componentCode={landingFullComponent!}
+          result={latestResult!}
+          ventureName={ventureName}
+          accent={mod.accent}
+          device={previewDevice}
+          showCode={previewShowCode}
+          onDeviceChange={setPreviewDevice}
+          onToggleCode={() => setPreviewShowCode(v => !v)}
+          onClose={() => setReadingPanelOpen(false)}
+          ventureId={ventureId}
         />
       )}
       </div> {/* End content area flex */}
@@ -1733,26 +1946,48 @@ export default function ModulePage() {
                             exit={{ opacity: 0, y: -8, scale: 0.96 }}
                             transition={{ duration: 0.18, ease: 'easeOut' }}
                           >
-                            {MODULES.map(m => (
-                              <motion.button
-                                key={m.id}
-                                type="button"
-                                onClick={() => { setActiveModule(m.id as ModuleId); setPickerOpen(false) }}
-                                style={{
-                                  ...pickerOptionStyle,
-                                  background: m.id === activeModule ? `${m.accent}12` : 'transparent',
-                                }}
-                                whileHover={{ backgroundColor: `${m.accent}10`, x: 2 }}
-                              >
-                                <span style={{ color: m.accent, display: 'flex', alignItems: 'center' }}>
-                                  <ModuleIconSvg id={m.id} size={13} />
-                                </span>
-                                <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: m.id === activeModule ? 600 : 400 }}>{m.label}</span>
-                                {m.id === activeModule && (
-                                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.accent, marginLeft: 'auto' }} />
-                                )}
-                              </motion.button>
-                            ))}
+                            {MODULES.map(m => {
+                              const unlocked = !billing || billing.allowedModules.includes(m.id)
+                              return (
+                                <motion.button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => { setActiveModule(m.id as ModuleId); setPickerOpen(false) }}
+                                  style={{
+                                    ...pickerOptionStyle,
+                                    background: m.id === activeModule ? `${m.accent}12` : 'transparent',
+                                    opacity: unlocked ? 1 : 0.72,
+                                  }}
+                                  whileHover={{ backgroundColor: `${m.accent}10`, x: 2 }}
+                                >
+                                  <span style={{ color: m.accent, display: 'flex', alignItems: 'center' }}>
+                                    <ModuleIconSvg id={m.id} size={13} />
+                                  </span>
+                                  <span style={{ fontSize: 12, color: unlocked ? 'var(--text)' : 'var(--muted)', fontWeight: m.id === activeModule ? 600 : 400 }}>
+                                    {m.label}
+                                  </span>
+                                  {!unlocked ? (
+                                    <span
+                                      style={{
+                                        marginLeft: 'auto',
+                                        fontSize: 8,
+                                        fontWeight: 800,
+                                        letterSpacing: '0.04em',
+                                        textTransform: 'uppercase',
+                                        color: 'var(--muted)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 999,
+                                        padding: '2px 6px',
+                                      }}
+                                    >
+                                      Locked
+                                    </span>
+                                  ) : m.id === activeModule && (
+                                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.accent, marginLeft: 'auto' }} />
+                                  )}
+                                </motion.button>
+                              )
+                            })}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -2096,6 +2331,402 @@ function ReadingPanel({ moduleId, result, accent, onClose }: {
         {moduleId === 'marketing' && <MarketingDoc result={result} />}
         {moduleId === 'landing' && <LandingDoc result={result} />}
         {moduleId === 'feasibility' && <FeasibilityDoc result={result} />}
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Landing Preview Panel ───────────────────────────────────────────────────
+
+function escapeHtmlForPreview(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function buildPreviewHtml(
+  componentCode: string,
+  seo: { title?: string; description?: string; keywords?: string[] },
+  ventureName: string
+): string {
+  const isReactComponent =
+    componentCode.includes('export default') ||
+    componentCode.includes('function ') ||
+    componentCode.includes('const ') ||
+    componentCode.includes('useState') ||
+    componentCode.includes('React')
+
+  if (isReactComponent) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtmlForPreview(seo.title || ventureName || 'Landing Page')}</title>
+  ${seo.description ? `<meta name="description" content="${escapeHtmlForPreview(seo.description)}" />` : ''}
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    ${componentCode
+      .replace(/^import\s+.*$/gm, '// import removed for preview')
+      .replace(/export\s+default\s+/g, 'const __LandingPage__ = ')}
+
+    const App = typeof __LandingPage__ !== 'undefined'
+      ? __LandingPage__
+      : typeof LandingPage !== 'undefined'
+        ? LandingPage
+        : typeof HomePage !== 'undefined'
+          ? HomePage
+          : typeof Page !== 'undefined'
+            ? Page
+            : () => React.createElement('div', {style:{padding:40,textAlign:'center',color:'#888'}}, 'Component not found');
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  <\/script>
+</body>
+</html>`
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtmlForPreview(seo.title || ventureName || 'Landing Page')}</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  </style>
+</head>
+<body>
+  ${componentCode}
+</body>
+</html>`
+}
+
+function LandingPreviewPanel({ componentCode, result, ventureName, accent, device, showCode, onDeviceChange, onToggleCode, onClose, ventureId }: {
+  componentCode: string
+  result: Record<string, any>
+  ventureName: string
+  accent: string
+  device: 'desktop' | 'tablet' | 'mobile'
+  showCode: boolean
+  onDeviceChange: (d: 'desktop' | 'tablet' | 'mobile') => void
+  onToggleCode: () => void
+  onClose: () => void
+  ventureId: string
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeLoading, setIframeLoading] = useState(true)
+  const [iframeKey, setIframeKey] = useState(0)
+
+  const clean = componentCode
+    .replace(/```(?:tsx|jsx|html|javascript|typescript)?\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim()
+
+  const seo = result.landing?.seoMetadata || result.seoMetadata || {}
+  const previewHtml = buildPreviewHtml(clean, seo, ventureName)
+
+  useEffect(() => {
+    if (iframeRef.current) {
+      setIframeLoading(true)
+      iframeRef.current.srcdoc = previewHtml
+    }
+  }, [previewHtml, iframeKey])
+
+  const deviceWidths: Record<string, string> = {
+    desktop: '100%',
+    tablet: '768px',
+    mobile: '375px',
+  }
+
+  const deviceIcons: Record<string, React.ReactNode> = {
+    desktop: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" />
+      </svg>
+    ),
+    tablet: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="16" height="20" x="4" y="2" rx="2" /><line x1="12" x2="12.01" y1="18" y2="18" />
+      </svg>
+    ),
+    mobile: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="12" height="20" x="6" y="2" rx="2" /><line x1="12" x2="12.01" y1="18" y2="18" />
+      </svg>
+    ),
+  }
+
+  const toolBtnStyle = (active: boolean): React.CSSProperties => ({
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: 'none',
+    background: active ? `${accent}18` : 'transparent',
+    color: active ? accent : 'var(--muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s',
+    fontFamily: 'inherit',
+  })
+
+  const actionBtnSmall: React.CSSProperties = {
+    height: 28,
+    padding: '0 10px',
+    borderRadius: 7,
+    border: '1px solid var(--border)',
+    background: 'transparent',
+    color: 'var(--text-soft)',
+    cursor: 'pointer',
+    fontSize: 10,
+    fontWeight: 600,
+    fontFamily: 'inherit',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    transition: 'all 0.2s',
+    letterSpacing: '0.02em',
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+      className="landing-preview-panel"
+      style={{
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--sidebar)',
+        borderLeft: '1px solid var(--border)',
+        height: '100%',
+      }}
+    >
+      {/* ── Toolbar ── */}
+      <div style={{
+        padding: '0 12px',
+        height: 44,
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        background: 'rgba(255,255,255,0.02)',
+        gap: 8,
+      }}>
+        {/* Left — device toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            background: 'var(--glass-bg)',
+            borderRadius: 8,
+            padding: 2,
+            border: '1px solid var(--border)',
+          }}>
+            {(['desktop', 'tablet', 'mobile'] as const).map(d => (
+              <motion.button
+                key={d}
+                onClick={() => onDeviceChange(d)}
+                style={toolBtnStyle(device === d)}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                title={d.charAt(0).toUpperCase() + d.slice(1)}
+              >
+                {deviceIcons[d]}
+              </motion.button>
+            ))}
+          </div>
+          <span style={{
+            fontSize: 9,
+            color: 'var(--muted)',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginLeft: 6,
+            opacity: 0.6,
+          }}>
+            {device === 'desktop' ? 'Full' : device === 'tablet' ? '768px' : '375px'}
+          </span>
+        </div>
+
+        {/* Right — actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Refresh */}
+          <motion.button
+            onClick={() => setIframeKey(k => k + 1)}
+            style={actionBtnSmall}
+            whileHover={{ scale: 1.04, borderColor: accent }}
+            whileTap={{ scale: 0.96 }}
+            title="Refresh preview"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </motion.button>
+
+          {/* Code toggle */}
+          <motion.button
+            onClick={onToggleCode}
+            style={{ ...actionBtnSmall, background: showCode ? `${accent}12` : 'transparent', color: showCode ? accent : 'var(--text-soft)', borderColor: showCode ? `${accent}30` : 'var(--border)' }}
+            whileHover={{ scale: 1.04, borderColor: accent }}
+            whileTap={{ scale: 0.96 }}
+            title="Toggle code view"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+            </svg>
+            Code
+          </motion.button>
+
+          {/* Open in new tab */}
+          <motion.button
+            onClick={() => window.open(`/v/${ventureId}`, '_blank')}
+            style={actionBtnSmall}
+            whileHover={{ scale: 1.04, borderColor: accent }}
+            whileTap={{ scale: 0.96 }}
+            title="Open in new tab"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </motion.button>
+
+          {/* Close */}
+          <motion.button
+            onClick={onClose}
+            style={{ ...actionBtnSmall, padding: '0 6px' }}
+            whileHover={{ scale: 1.04, borderColor: '#e05252' }}
+            whileTap={{ scale: 0.96 }}
+            title="Close preview"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* ── Preview or Code ── */}
+      {showCode ? (
+        <pre className="preview-code-view" style={{ flex: 1, overflow: 'auto', margin: 0, background: 'var(--bg)' }}>
+          {clean}
+        </pre>
+      ) : (
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          background: 'var(--bg)',
+          position: 'relative',
+        }}>
+          {/* Loading overlay */}
+          <AnimatePresence>
+            {iframeLoading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--bg)',
+                  zIndex: 5,
+                  gap: 12,
+                }}
+              >
+                <motion.div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    border: `3px solid var(--border)`,
+                    borderTopColor: accent,
+                  }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                />
+                <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Rendering preview...
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Iframe */}
+          <div
+            className="preview-iframe-wrap"
+            style={{
+              width: deviceWidths[device],
+              maxWidth: '100%',
+              height: '100%',
+              flexShrink: 0,
+              borderLeft: device !== 'desktop' ? '1px solid var(--border)' : 'none',
+              borderRight: device !== 'desktop' ? '1px solid var(--border)' : 'none',
+              boxShadow: device !== 'desktop' ? '0 0 40px rgba(0,0,0,0.15)' : 'none',
+              borderRadius: device === 'mobile' ? 16 : device === 'tablet' ? 10 : 0,
+              overflow: 'hidden',
+            }}
+          >
+            <iframe
+              key={iframeKey}
+              ref={iframeRef}
+              title={`${ventureName} — Live Preview`}
+              sandbox="allow-scripts"
+              onLoad={() => setIframeLoading(false)}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                display: 'block',
+                background: '#fff',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Bottom status bar ── */}
+      <div style={{
+        height: 32,
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 12px',
+        flexShrink: 0,
+        background: 'rgba(255,255,255,0.02)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 6px #16a34a60' }} />
+          <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>Live Preview</span>
+        </div>
+        <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, fontFamily: "'JetBrains Mono', monospace", opacity: 0.6 }}>
+          React + Tailwind
+        </span>
       </div>
     </motion.div>
   )
