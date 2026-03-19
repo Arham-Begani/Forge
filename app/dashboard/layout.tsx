@@ -13,6 +13,10 @@ interface SessionData {
   email: string
   name: string
   plan: string
+  planLabel?: string
+  creditsRemaining?: number
+  allowedModules?: string[]
+  hasUnlimitedAccess?: boolean
 }
 
 interface ProjectItem {
@@ -42,12 +46,13 @@ const MODULES = [
   { id: 'feasibility',  label: 'Feasibility',  icon: '◈', accent: '#7A5A8C' },
   { id: 'general',      label: 'Co-pilot',     icon: '◉', accent: '#6B8F71' },
   { id: 'shadow-board', label: 'Shadow Board', icon: '⚔', accent: '#E04848' },
+  { id: 'mvp-scalpel',  label: 'MVP Scalpel',  icon: '✂', accent: '#C45A5A' },
 ] as const
 
 const MODULE_GROUPS = [
   { label: 'LAUNCH', ids: ['full-launch', 'launch-autopilot'] },
   { label: 'AGENTS', ids: ['research', 'branding', 'marketing', 'landing', 'feasibility'] },
-  { label: 'TOOLS',  ids: ['general', 'shadow-board'] },
+  { label: 'TOOLS',  ids: ['general', 'shadow-board', 'mvp-scalpel'] },
 ] as const
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -71,6 +76,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null)
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [ventures, setVentures] = useState<VentureItem[]>([])
+  const [cohorts, setCohorts] = useState<{ id: string; name: string; status: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [appReady, setAppReady] = useState(false)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
@@ -116,14 +122,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function load() {
       try {
-        const [sessRes, projRes, ventRes] = await Promise.all([
+        const [sessRes, projRes, ventRes, cohRes] = await Promise.all([
           fetch('/api/auth/session'),
           fetch('/api/projects'),
           fetch('/api/ventures'),
+          fetch('/api/cohorts'),
         ])
         if (sessRes.ok) setSession(await sessRes.json())
         if (projRes.ok) setProjects(await projRes.json())
         if (ventRes.ok) setVentures(await ventRes.json())
+        if (cohRes.ok) setCohorts(await cohRes.json())
+      } catch (err) {
+        console.error('Failed to load dashboard layout data:', err)
       } finally {
         setLoading(false)
       }
@@ -234,6 +244,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   function isModuleActive(ventureId: string, moduleId: string): boolean {
     return pathname === `/dashboard/venture/${ventureId}/${moduleId}`
+  }
+
+  function isModuleUnlocked(moduleId: string): boolean {
+    if (!session?.allowedModules?.length) return true
+    return session.allowedModules.includes(moduleId)
   }
 
   function getVenturesForProject(projectId: string) {
@@ -732,6 +747,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         </div>
                                         {groupModules.map((m, idx) => {
                                           const active = isModuleActive(v.id, m.id)
+                                          const unlocked = isModuleUnlocked(m.id)
                                           return (
                                             <motion.button
                                               key={m.id}
@@ -754,13 +770,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                                 textAlign: 'left',
                                                 fontFamily: 'inherit',
                                                 transition: 'background 150ms ease',
-                                                background: active ? `${m.accent}12` : 'transparent',
+                                                background: active ? `${m.accent}12` : unlocked ? 'transparent' : 'rgba(255,255,255,0.02)',
                                                 borderLeft: active ? `2px solid ${m.accent}` : '2px solid transparent',
+                                                opacity: unlocked ? 1 : 0.76,
                                               }}
                                             >
                                               <span style={{ color: m.accent, fontSize: 11, lineHeight: 1, width: 14, textAlign: 'center' as const }}>{m.icon}</span>
-                                              <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : 'var(--text-soft)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
-                                              {active && (
+                                              <span style={{ fontSize: 11.5, color: active ? 'var(--text)' : unlocked ? 'var(--text-soft)' : 'var(--muted)', fontWeight: active ? 600 : 500 }}>{m.label}</span>
+                                              {!unlocked ? (
+                                                <span
+                                                  style={{
+                                                    marginLeft: 'auto',
+                                                    fontSize: 8,
+                                                    fontWeight: 800,
+                                                    letterSpacing: '0.04em',
+                                                    textTransform: 'uppercase',
+                                                    color: 'var(--muted)',
+                                                    border: '1px solid var(--border)',
+                                                    borderRadius: 999,
+                                                    padding: '2px 6px',
+                                                  }}
+                                                >
+                                                  Locked
+                                                </span>
+                                              ) : active && (
                                                 <motion.div
                                                   layoutId="module-active-dot"
                                                   style={{ width: 4, height: 4, borderRadius: '50%', background: m.accent, marginLeft: 'auto', flexShrink: 0 }}
@@ -783,6 +816,91 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                   </motion.div>
                 )}
+
+              {/* ── COHORTS section ───────────────────────────── */}
+              <div style={{ padding: '14px 8px 4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--muted)', opacity: 0.5, textTransform: 'uppercase' }}>COHORTS</span>
+                  <motion.button
+                    onClick={() => router.push('/dashboard/cohort/new')}
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: 'var(--accent)',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent-glow, var(--border))',
+                      borderRadius: 5,
+                      padding: '2px 7px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.02em',
+                    }}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    New Cohort
+                  </motion.button>
+                </div>
+
+                {!loading && cohorts.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 8px' }}>
+                    No cohorts yet
+                  </div>
+                )}
+
+                {!loading && cohorts.map(c => {
+                  const isActive = pathname === `/dashboard/cohort/${c.id}`
+                  const statusColor = c.status === 'complete' ? '#5A8C6E' :
+                    c.status === 'running' ? '#C4975A' :
+                    c.status === 'comparing' ? '#7A5A8C' : 'var(--muted)'
+                  return (
+                    <motion.button
+                      key={c.id}
+                      onClick={() => router.push(`/dashboard/cohort/${c.id}`)}
+                      whileHover={{ backgroundColor: 'var(--nav-active)' }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: isActive ? 'var(--nav-active)' : 'transparent',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                        marginBottom: 2,
+                      }}
+                    >
+                      <span style={{
+                        fontSize: 13,
+                        fontWeight: isActive ? 600 : 400,
+                        color: isActive ? 'var(--text)' : 'var(--text-soft)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {c.name}
+                      </span>
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                        background: `${statusColor}20`,
+                        color: statusColor,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        flexShrink: 0,
+                      }}>
+                        {c.status}
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -935,8 +1053,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     whiteSpace: 'nowrap',
                   }}>{session?.name || session?.email || '...'}</span>
                   <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--accent)' }}>
-                    {session?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                    {session?.planLabel ? `${session.planLabel} Plan` : 'Free Plan'}
                   </span>
+                  {typeof session?.creditsRemaining === 'number' && (
+                    <span style={{ fontSize: 9, fontWeight: 500, color: 'var(--muted)', marginTop: 2 }}>
+                      {session.hasUnlimitedAccess ? 'Unlimited credits' : `${session.creditsRemaining} credits left`}
+                    </span>
+                  )}
                 </div>
                 <motion.button
                   whileHover={{ rotate: 90, scale: 1.1 }}
@@ -1101,4 +1224,3 @@ const newInputStyle: React.CSSProperties = {
   outline: 'none',
   boxShadow: 'var(--shadow-input)',
 }
-
