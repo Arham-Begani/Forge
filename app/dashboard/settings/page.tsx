@@ -53,6 +53,248 @@ function saveSettings(settings: ForgeSettings) {
   window.dispatchEvent(new CustomEvent('forge:settings-changed', { detail: settings }))
 }
 
+// ─── Themes ─────────────────────────────────────────────────────────────────────
+
+const THEMES = [
+  {
+    id: 'amber', label: 'Amber', description: 'Warm & golden',
+    accent: '#C07A3A', accentLight: '#D4924A',
+    bg: '#faf9f6', sidebar: '#f0ede6', card: '#ffffff',
+    darkBg: '#111110', darkSidebar: '#0d0d0c', darkCard: '#1a1916',
+    textDark: '#1c1a16', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #faf3e8 0%, #f5e8d0 100%)',
+    gradientDark: 'linear-gradient(135deg, #1a1510 0%, #0f0d0a 100%)',
+  },
+  {
+    id: 'ocean', label: 'Ocean', description: 'Deep & serene',
+    accent: '#1A78A8', accentLight: '#2A9FD6',
+    bg: '#f0f6fa', sidebar: '#e4f0f7', card: '#ffffff',
+    darkBg: '#0c1318', darkSidebar: '#0a1016', darkCard: '#111b22',
+    textDark: '#0d1e2a', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #e8f4fb 0%, #d0e8f5 100%)',
+    gradientDark: 'linear-gradient(135deg, #0d1a24 0%, #081018 100%)',
+  },
+  {
+    id: 'forest', label: 'Forest', description: 'Earthy & natural',
+    accent: '#2D7A50', accentLight: '#3D9E68',
+    bg: '#f2f8f4', sidebar: '#e4f0e8', card: '#ffffff',
+    darkBg: '#0c1510', darkSidebar: '#091209', darkCard: '#121e15',
+    textDark: '#0f2016', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #e8f5ed 0%, #d0ecda 100%)',
+    gradientDark: 'linear-gradient(135deg, #0d1e12 0%, #081009 100%)',
+  },
+  {
+    id: 'rose', label: 'Rose', description: 'Bold & expressive',
+    accent: '#C43A6E', accentLight: '#E04D85',
+    bg: '#fdf2f6', sidebar: '#f7e4ed', card: '#ffffff',
+    darkBg: '#180c12', darkSidebar: '#12090e', darkCard: '#221018',
+    textDark: '#2a0e1a', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #fce8f2 0%, #f5d0e5 100%)',
+    gradientDark: 'linear-gradient(135deg, #201018 0%, #120a10 100%)',
+  },
+  {
+    id: 'slate', label: 'Slate', description: 'Clean & focused',
+    accent: '#4A6EC8', accentLight: '#6285E0',
+    bg: '#f2f5fc', sidebar: '#e4eaf7', card: '#ffffff',
+    darkBg: '#0d1020', darkSidebar: '#090c18', darkCard: '#131828',
+    textDark: '#0d1630', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #eaf0fc 0%, #d5e0f8 100%)',
+    gradientDark: 'linear-gradient(135deg, #111828 0%, #090e1c 100%)',
+  },
+  {
+    id: 'violet', label: 'Violet', description: 'Creative & vivid',
+    accent: '#7A4AC8', accentLight: '#9B6AE8',
+    bg: '#f6f2fc', sidebar: '#ede4f7', card: '#ffffff',
+    darkBg: '#110d1e', darkSidebar: '#0d0a18', darkCard: '#1a1228',
+    textDark: '#1a0e30', textLight: '#ffffff',
+    gradient: 'linear-gradient(135deg, #f0e8fc 0%, #e2d0f8 100%)',
+    gradientDark: 'linear-gradient(135deg, #1a1028 0%, #0f0a1c 100%)',
+  },
+] as const
+
+type ThemeId = typeof THEMES[number]['id']
+
+function ThemePicker({ currentTheme, onSelect }: { currentTheme: ThemeId; onSelect: (id: ThemeId) => void }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      {THEMES.map((t, i) => {
+        const active = currentTheme === t.id
+        return (
+          <motion.button
+            key={t.id}
+            onClick={() => onSelect(t.id)}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05 }}
+            whileHover={{ scale: 1.03, y: -3 }}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              borderRadius: 16,
+              border: active ? `2px solid ${t.accent}` : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              textAlign: 'left',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: active
+                ? `0 0 0 1px ${t.accent}30, 0 8px 24px ${t.accent}30`
+                : '0 2px 12px rgba(0,0,0,0.12)',
+              padding: 0,
+              background: 'none',
+              transition: 'transform 200ms, box-shadow 200ms, border-color 200ms',
+            }}
+          >
+            {/* ── Mini UI preview ── */}
+            <div style={{
+              background: t.gradient,
+              height: 80,
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+            }}>
+              {/* Sidebar strip */}
+              <div style={{
+                width: 28,
+                height: '100%',
+                background: t.sidebar,
+                borderRight: `1px solid ${t.accent}20`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                paddingTop: 8,
+                gap: 5,
+                flexShrink: 0,
+              }}>
+                {/* Logo dot */}
+                <div style={{
+                  width: 10, height: 10, borderRadius: 3,
+                  background: t.accent,
+                  boxShadow: `0 0 6px ${t.accent}80`,
+                }} />
+                {[0.9, 0.6, 0.8, 0.5].map((op, j) => (
+                  <div key={j} style={{
+                    width: 16, height: 3, borderRadius: 2,
+                    background: t.accent, opacity: op,
+                  }} />
+                ))}
+              </div>
+              {/* Content area */}
+              <div style={{
+                flex: 1, padding: '8px 8px 0',
+                display: 'flex', flexDirection: 'column', gap: 5,
+              }}>
+                {/* Top bar */}
+                <div style={{
+                  height: 14, borderRadius: 4,
+                  background: t.card,
+                  border: `1px solid ${t.accent}18`,
+                  display: 'flex', alignItems: 'center', paddingLeft: 6, gap: 4,
+                }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: t.accent }} />
+                  <div style={{ height: 3, width: '50%', borderRadius: 2, background: t.accent, opacity: 0.3 }} />
+                </div>
+                {/* Card rows */}
+                {[1, 0.65].map((op, j) => (
+                  <div key={j} style={{
+                    height: 16, borderRadius: 5,
+                    background: t.card,
+                    border: `1px solid ${t.accent}15`,
+                    opacity: op,
+                    padding: '0 6px',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <div style={{ width: 6, height: 6, borderRadius: 2, background: t.accent, opacity: 0.7 }} />
+                    <div style={{ flex: 1, height: 3, borderRadius: 2, background: t.accent, opacity: 0.2 }} />
+                    <div style={{ width: '20%', height: 5, borderRadius: 3, background: t.accent, opacity: 0.6 }} />
+                  </div>
+                ))}
+              </div>
+              {/* Accent glow blob */}
+              <div style={{
+                position: 'absolute',
+                width: 60, height: 60,
+                borderRadius: '50%',
+                background: t.accent,
+                opacity: 0.12,
+                filter: 'blur(18px)',
+                right: -10, bottom: -10,
+                pointerEvents: 'none',
+              }} />
+            </div>
+
+            {/* ── Dark strip ── */}
+            <div style={{
+              background: t.gradientDark,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '0 10px',
+              borderTop: `1px solid ${t.accent}25`,
+            }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: t.accentLight, boxShadow: `0 0 6px ${t.accentLight}` }} />
+              {[0.6, 0.35, 0.5].map((op, j) => (
+                <div key={j} style={{ height: 3, width: `${[30, 20, 25][j]}%`, borderRadius: 2, background: t.accentLight, opacity: op }} />
+              ))}
+            </div>
+
+            {/* ── Label row ── */}
+            <div style={{
+              padding: '10px 12px 11px',
+              background: active ? `${t.accent}10` : 'var(--glass-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              borderTop: `1px solid ${active ? t.accent + '30' : 'var(--border)'}`,
+            }}>
+              {/* Color swatch */}
+              <div style={{
+                width: 20, height: 20, borderRadius: 6,
+                background: `linear-gradient(135deg, ${t.accent}, ${t.accentLight})`,
+                boxShadow: `0 2px 8px ${t.accent}50`,
+                flexShrink: 0,
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 700, lineHeight: 1.2,
+                  color: active ? t.accent : 'var(--text)',
+                }}>{t.label}</div>
+                <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 1 }}>{t.description}</div>
+              </div>
+              {/* Active badge */}
+              {active ? (
+                <motion.div
+                  layoutId="theme-active-check"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  style={{
+                    width: 18, height: 18, borderRadius: '50%',
+                    background: t.accent,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </motion.div>
+              ) : (
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  border: '1.5px solid var(--border)',
+                  flexShrink: 0,
+                }} />
+              )}
+            </div>
+          </motion.button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Toggle Switch ──────────────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange, accent = 'var(--accent)' }: { checked: boolean; onChange: (v: boolean) => void; accent?: string }) {
@@ -171,10 +413,26 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<ForgeSettings>(DEFAULT_SETTINGS)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [currentTheme, setCurrentTheme] = useState<ThemeId>('amber')
+
+  const THEME_IDS = THEMES.map(t => t.id)
+
+  function applyTheme(id: ThemeId) {
+    const root = document.documentElement
+    THEME_IDS.forEach(t => root.classList.remove(`theme-${t}`))
+    if (id !== 'amber') root.classList.add(`theme-${id}`)
+    setCurrentTheme(id)
+    localStorage.setItem('forge-theme', id)
+    window.dispatchEvent(new CustomEvent('forge:theme-changed', { detail: { themeId: id } }))
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   useEffect(() => {
     setMounted(true)
     setSettings(loadSettings())
+    const stored = (localStorage.getItem('forge-theme') || 'amber') as ThemeId
+    setCurrentTheme(stored)
     fetch('/api/auth/session')
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setSession(d) })
@@ -529,17 +787,42 @@ export default function SettingsPage() {
             </SettingRow>
           </div>
 
+          {/* ── Appearance Section ── */}
+          <SectionHeader
+            icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg>}
+            title="Appearance"
+            description="Choose a theme to personalize the look and feel of Forge"
+            delay={0.3}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.32 }}
+            style={{
+              padding: '20px',
+              borderRadius: 16,
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--border)',
+              marginBottom: 32,
+            }}
+          >
+            {mounted && (
+              <ThemePicker currentTheme={currentTheme} onSelect={applyTheme} />
+            )}
+          </motion.div>
+
           {/* ── Display Section ── */}
           <SectionHeader
             icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>}
             title="Display"
             description="Appearance and layout preferences"
-            delay={0.3}
+            delay={0.42}
           />
 
           <div className="flex flex-col gap-3" style={{ marginBottom: 32 }}>
             <SettingRow
-              delay={0.32}
+              delay={0.44}
               icon={
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
@@ -552,7 +835,7 @@ export default function SettingsPage() {
             </SettingRow>
 
             <SettingRow
-              delay={0.36}
+              delay={0.48}
               icon={
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
