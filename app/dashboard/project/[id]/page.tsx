@@ -57,10 +57,19 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     setMounted(true)
-    fetch(`/api/projects/${projectId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setProject(data))
-      .finally(() => setLoading(false))
+    async function loadProject() {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`)
+        const data = response.ok ? await response.json() : null
+        setProject(data)
+      } catch (err) {
+        console.error('Failed to load project:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProject()
   }, [projectId])
 
   useEffect(() => { if (renamingProject && renameRef.current) { renameRef.current.focus(); renameRef.current.select() } }, [renamingProject])
