@@ -1,5 +1,6 @@
 // app/api/ventures/[id]/investor-kit/route.ts
 import { requireAuth, isAuthError } from '@/lib/auth'
+import { getBillingSnapshot } from '@/lib/billing-queries'
 import {
     getVenture,
     createInvestorKit,
@@ -28,6 +29,11 @@ export async function GET(
             return NextResponse.json({ error: 'Venture not found' }, { status: 404 })
         }
 
+        const billing = await getBillingSnapshot(session.userId)
+        if (!billing.allowedModules.includes('investor-kit')) {
+            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
+        }
+
         const kit = await getInvestorKitByVenture(id)
         if (!kit) {
             return NextResponse.json({ kit: null })
@@ -54,6 +60,11 @@ export async function POST(
         const venture = await getVenture(id, session.userId)
         if (!venture) {
             return NextResponse.json({ error: 'Venture not found' }, { status: 404 })
+        }
+
+        const billing = await getBillingSnapshot(session.userId)
+        if (!billing.allowedModules.includes('investor-kit')) {
+            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
         }
 
         const ctx = venture.context as any
