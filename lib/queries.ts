@@ -48,17 +48,80 @@ export interface VentureContext {
   marketing: Record<string, unknown> | null
   landing: Record<string, unknown> | null
   feasibility: Record<string, unknown> | null
+  shadowBoard?: Record<string, unknown> | null
+  investorKit?: Record<string, unknown> | null
+  launchAutopilot?: Record<string, unknown> | null
+  mvpScalpel?: Record<string, unknown> | null
 }
 
 export interface Conversation {
   id: string
   venture_id: string
-  module_id: 'research' | 'branding' | 'marketing' | 'landing' | 'feasibility' | 'full-launch' | 'general' | 'shadow-board' | 'investor-kit' | 'launch-autopilot'
+  module_id: 'research' | 'branding' | 'marketing' | 'landing' | 'feasibility' | 'full-launch' | 'general' | 'shadow-board' | 'investor-kit' | 'launch-autopilot' | 'mvp-scalpel'
   prompt: string
   status: 'running' | 'complete' | 'failed'
   stream_output: string[]
   result: Record<string, unknown>
   created_at: string
+}
+
+const LEGACY_CONVERSATION_MODULE_IDS = new Set<Conversation['module_id']>([
+  'research',
+  'branding',
+  'marketing',
+  'landing',
+  'feasibility',
+  'full-launch',
+])
+
+const CONVERSATION_MODULE_FALLBACK: Record<Conversation['module_id'], Conversation['module_id']> = {
+  research: 'research',
+  branding: 'branding',
+  marketing: 'marketing',
+  landing: 'landing',
+  feasibility: 'feasibility',
+  'full-launch': 'full-launch',
+  general: 'research',
+  'shadow-board': 'feasibility',
+  'investor-kit': 'marketing',
+  'launch-autopilot': 'landing',
+  'mvp-scalpel': 'feasibility',
+}
+
+const CONVERSATION_MODULE_PREFIX = '__FORGE_MODULE__:'
+
+function encodeConversationPrompt(moduleId: Conversation['module_id'], prompt: string): string {
+  if (LEGACY_CONVERSATION_MODULE_IDS.has(moduleId)) return prompt
+  return `${CONVERSATION_MODULE_PREFIX}${moduleId}\n${prompt}`
+}
+
+function decodeConversationModuleId(
+  storedModuleId: Conversation['module_id'],
+  prompt: string
+): Conversation['module_id'] {
+  if (!prompt.startsWith(CONVERSATION_MODULE_PREFIX)) return storedModuleId
+
+  const newlineIndex = prompt.indexOf('\n')
+  const encodedModuleId = (newlineIndex === -1
+    ? prompt.slice(CONVERSATION_MODULE_PREFIX.length)
+    : prompt.slice(CONVERSATION_MODULE_PREFIX.length, newlineIndex)
+  ).trim() as Conversation['module_id']
+
+  return encodedModuleId || storedModuleId
+}
+
+function decodeConversationPrompt(prompt: string): string {
+  if (!prompt.startsWith(CONVERSATION_MODULE_PREFIX)) return prompt
+  const newlineIndex = prompt.indexOf('\n')
+  return newlineIndex === -1 ? '' : prompt.slice(newlineIndex + 1)
+}
+
+function normalizeConversation(conversation: Conversation): Conversation {
+  return {
+    ...conversation,
+    module_id: decodeConversationModuleId(conversation.module_id, conversation.prompt),
+    prompt: decodeConversationPrompt(conversation.prompt),
+  }
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -135,7 +198,17 @@ export async function createVenture(userId: string, name: string, projectId?: st
     const insertData: Record<string, unknown> = {
       user_id: userId,
       name,
-      context: { research: null, branding: null, marketing: null, landing: null, feasibility: null },
+      context: {
+        research: null,
+        branding: null,
+        marketing: null,
+        landing: null,
+        feasibility: null,
+        shadowBoard: null,
+        investorKit: null,
+        launchAutopilot: null,
+        mvpScalpel: null,
+      },
     }
     if (projectId) insertData.project_id = projectId
 
@@ -199,7 +272,7 @@ export async function updateVentureName(id: string, name: string): Promise<void>
 
 export async function updateVentureContext(
   id: string,
-  contextKey: 'research' | 'branding' | 'marketing' | 'landing' | 'feasibility',
+  contextKey: 'research' | 'branding' | 'marketing' | 'landing' | 'feasibility' | 'shadowBoard' | 'investorKit' | 'launchAutopilot' | 'mvpScalpel',
   value: unknown
 ): Promise<void> {
   const db = await createDb()
@@ -238,14 +311,16 @@ export async function createConversation(
 ): Promise<Conversation> {
   return withRetry(async () => {
     const db = await createDb()
+    const storedModuleId = CONVERSATION_MODULE_FALLBACK[moduleId]
+    const storedPrompt = encodeConversationPrompt(moduleId, prompt)
     const { data, error } = await db
       .from('conversations')
-      .insert({ venture_id: ventureId, module_id: moduleId, prompt, status: 'running', stream_output: [], result: {} })
+      .insert({ venture_id: ventureId, module_id: storedModuleId, prompt: storedPrompt, status: 'running', stream_output: [], result: {} })
       .select()
       .single()
 
     if (error) throw new Error(`createConversation failed: ${error.message}`)
-    return data
+    return normalizeConversation(data)
   })
 }
 
@@ -298,15 +373,16 @@ export async function getConversationsByModule(
   moduleId: Conversation['module_id']
 ): Promise<Conversation[]> {
   const db = await createDb()
+  const storedModuleId = CONVERSATION_MODULE_FALLBACK[moduleId]
   const { data, error } = await db
     .from('conversations')
     .select('*')
     .eq('venture_id', ventureId)
-    .eq('module_id', moduleId)
+    .eq('module_id', storedModuleId)
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(`getConversationsByModule failed: ${error.message}`)
-  return data ?? []
+  return (data ?? []).map(normalizeConversation).filter(conversation => conversation.module_id === moduleId)
 }
 
 export async function getConversation(id: string): Promise<Conversation | null> {
@@ -318,7 +394,7 @@ export async function getConversation(id: string): Promise<Conversation | null> 
     .single()
 
   if (error) return null
-  return data
+  return normalizeConversation(data)
 }
 
 // ─── User Ideas ───────────────────────────────────────────────────────────────
@@ -370,7 +446,7 @@ export async function getConversationsByVenture(ventureId: string): Promise<Conv
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(`getConversationsByVenture failed: ${error.message}`)
-  return data ?? []
+  return (data ?? []).map(normalizeConversation)
 }
 
 // ─── Investor Kits ────────────────────────────────────────────────────────────
@@ -449,4 +525,110 @@ export async function incrementKitViews(kitId: string): Promise<void> {
     .eq('id', kitId)
 
   if (error) console.error('incrementKitViews failed:', error.message)
+}
+
+// ─── Cohorts ──────────────────────────────────────────────────────────────────
+
+export interface Cohort {
+  id: string
+  user_id: string
+  project_id: string | null
+  name: string
+  core_idea: string
+  variant_ids: string[]
+  winner_id: string | null
+  comparison: Record<string, unknown> | null
+  status: 'draft' | 'running' | 'comparing' | 'complete'
+  created_at: string
+  updated_at: string
+}
+
+export async function getCohortsByUser(userId: string): Promise<Cohort[]> {
+  const db = await createDb()
+  const { data, error } = await db
+    .from('cohorts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(`getCohortsByUser failed: ${error.message}`)
+  return data ?? []
+}
+
+export async function getCohortById(cohortId: string): Promise<Cohort | null> {
+  const db = await createDb()
+  const { data, error } = await db
+    .from('cohorts')
+    .select('*')
+    .eq('id', cohortId)
+    .single()
+
+  if (error) return null
+  return data
+}
+
+export async function createCohort(
+  userId: string,
+  name: string,
+  coreIdea: string,
+  projectId?: string
+): Promise<Cohort> {
+  return withRetry(async () => {
+    const db = await createDb()
+    const insertData: Record<string, unknown> = {
+      user_id: userId,
+      name,
+      core_idea: coreIdea,
+    }
+    if (projectId) insertData.project_id = projectId
+
+    const { data, error } = await db
+      .from('cohorts')
+      .insert(insertData)
+      .select()
+      .single()
+
+    if (error) throw new Error(`createCohort failed: ${error.message}`)
+    return data
+  })
+}
+
+export async function updateCohortVariants(cohortId: string, variantIds: string[]): Promise<void> {
+  const db = await createDb()
+  const { error } = await db
+    .from('cohorts')
+    .update({ variant_ids: variantIds, updated_at: new Date().toISOString() })
+    .eq('id', cohortId)
+
+  if (error) throw new Error(`updateCohortVariants failed: ${error.message}`)
+}
+
+export async function updateCohortStatus(cohortId: string, status: string): Promise<void> {
+  const db = await createDb()
+  const { error } = await db
+    .from('cohorts')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', cohortId)
+
+  if (error) throw new Error(`updateCohortStatus failed: ${error.message}`)
+}
+
+export async function updateCohortComparison(cohortId: string, comparison: Record<string, unknown>): Promise<void> {
+  const db = await createDb()
+  const { error } = await db
+    .from('cohorts')
+    .update({ comparison, updated_at: new Date().toISOString() })
+    .eq('id', cohortId)
+
+  if (error) throw new Error(`updateCohortComparison failed: ${error.message}`)
+}
+
+export async function setCohortWinner(cohortId: string, winnerId: string): Promise<void> {
+  const db = await createDb()
+  const { error } = await db
+    .from('cohorts')
+    .update({ winner_id: winnerId, status: 'complete', updated_at: new Date().toISOString() })
+    .eq('id', cohortId)
+
+  if (error) throw new Error(`setCohortWinner failed: ${error.message}`)
 }
