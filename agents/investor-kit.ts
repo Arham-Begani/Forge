@@ -4,6 +4,7 @@ import {
     streamPrompt,
     extractJSON,
     withTimeout,
+    withRetry,
     Content,
 } from '@/lib/gemini'
 
@@ -146,23 +147,21 @@ ${contextParts.join('\n\n')}
 Produce the complete InvestorKitOutput JSON.`
 
     const run = async () => {
-        let fullText = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
-
-        await streamPrompt(
+        const responseText = await streamPrompt(
             model,
             SYSTEM_PROMPT,
             finalUserMessage,
-            async (chunk) => {
-                fullText += chunk
-                await onStream(chunk)
-            },
+            onStream,
             history
         )
 
-        const raw = extractJSON(fullText)
+        const partialOutput = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
+        const combinedText = isContinuation ? partialOutput + responseText : responseText
+
+        const raw = extractJSON(combinedText)
         const validated = InvestorKitSchema.parse(raw)
         await onComplete(validated)
     }
 
-    await withTimeout(run(), 90_000)
+    await withTimeout(withRetry(run), 180_000)
 }
