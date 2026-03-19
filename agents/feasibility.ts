@@ -351,25 +351,23 @@ Output the full FeasibilityOutput JSON at the end.`
 
     const run = async () => {
         const model = getProModelWithSearchAndThinking(cfg.thinkingBudget)
-        let fullText = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
-
-        await streamPrompt(
+        const responseText = await streamPrompt(
             model,
             buildSystemPrompt(depth),
             finalUserMessage,
-            async (chunk) => {
-                fullText += chunk
-                await onStream(chunk)
-            },
+            onStream,
             history
         )
 
-        const raw = extractJSON(fullText)
+        const partialOutput = (history.find(h => h.role === 'model')?.parts[0] as any)?.text || ''
+        const combinedText = isContinuation ? partialOutput + responseText : responseText
+
+        const raw = extractJSON(combinedText)
         const validated = FeasibilityOutputSchema.parse(raw)
         await onComplete(validated)
     }
 
-    // Longer timeout for detailed depth
+    // Each attempt gets its own timeout window (no retry on Pro model — expensive)
     const timeoutMs = depth === 'detailed' ? 300000 : depth === 'medium' ? 240000 : 180000
     await withTimeout(
         run(),

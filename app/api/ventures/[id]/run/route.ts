@@ -1,5 +1,10 @@
 // app/api/ventures/[id]/run/route.ts
+// Allow up to 5 minutes for long-running agents (Full Launch, Shadow Board, etc.)
+export const maxDuration = 300
+
 import { requireAuth, AuthError, isAuthError } from '@/lib/auth'
+import { type BillingModuleId } from '@/lib/billing'
+import { BillingError, assertCanRunModule, recordUsageCharge } from '@/lib/billing-queries'
 import {
     getVenture,
     createConversation,
@@ -8,6 +13,7 @@ import {
     setConversationResult,
     updateVentureContext,
     getProject,
+    getConversationsByModule,
 } from '@/lib/queries'
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
@@ -163,36 +169,60 @@ async function runAgent(
                 }, depth, history)
                 break
 
-            case 'general':
+            case 'general': {
+                // Build stateful multi-turn history from previous co-pilot conversations
+                let generalHistory: Content[] = history  // default: isContinuation history
+                let isResumeContinuation = isContinuation
+
+                if (!isContinuation) {
+                    // Load the last 8 completed co-pilot conversations (oldest first) for context
+                    try {
+                        const prevConvs = await getConversationsByModule(ventureId, 'general')
+                        const chatHistory: Content[] = []
+                        for (const conv of prevConvs.filter(c => c.status === 'complete').slice(0, 8).reverse()) {
+                            const response = (conv.result as Record<string, unknown>)?.response as string | undefined
+                            if (!response) continue
+                            chatHistory.push({ role: 'user', parts: [{ text: conv.prompt }] })
+                            chatHistory.push({ role: 'model', parts: [{ text: response }] })
+                        }
+                        generalHistory = chatHistory
+                    } catch {
+                        generalHistory = []
+                    }
+                    isResumeContinuation = false
+                }
+
                 await runGeneralAgent(ventureInput, onStream, async (result) => {
                     // General chat does NOT write to venture context — it's conversational only
                     await setConversationResult(conversationId, result)
-                }, history)
+                }, generalHistory, isResumeContinuation)
                 break
+            }
 
             case 'shadow-board':
                 await runShadowBoard(ventureInput, onStream, async (result) => {
-                    // Shadow board results are stored in the conversation result but not venture context
-                    // unless we want to add a shadowBoard field to VentureContext later.
-                    // For now, let's keep it in the conversation.
+                    await updateVentureContext(ventureId, 'shadowBoard', result)
                     await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
                 }, history)
                 break
 
             case 'investor-kit':
                 await runInvestorKitAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'investorKit', result)
                     await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
                 }, history)
                 break
 
             case 'launch-autopilot':
                 await runLaunchAutopilotAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'launchAutopilot', result)
                     await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
-                })
+                }, history)
                 break
 
             case 'mvp-scalpel':
                 await runMVPScalpelAgent(ventureInput, onStream, async (result) => {
+                    await updateVentureContext(ventureId, 'mvpScalpel', result)
                     await setConversationResult(conversationId, result as unknown as Record<string, unknown>)
                 }, history)
                 break
@@ -214,9 +244,13 @@ async function runAgent(
         console.error(`Agent run failed [${moduleId}]:`, message, stack)
         try {
             await appendStreamLine(conversationId, `\n[Error: ${message}]`)
+        } catch (dbError) {
+            console.error('Failed to write error line to DB:', dbError)
+        }
+        try {
             await updateConversationStatus(conversationId, 'failed')
         } catch (dbError) {
-            console.error('Failed to write error to DB:', dbError)
+            console.error('Failed to update conversation status to failed:', dbError)
         }
     }
 }
@@ -242,14 +276,28 @@ export async function POST(
             return NextResponse.json({ error: 'Not found' }, { status: 404 })
         }
 
-        const conversation = await createConversation(id, moduleId, prompt)
+        const billingCheck = isContinuation
+            ? null
+            : await assertCanRunModule(session.userId, moduleId as BillingModuleId)
 
-        // Use after() to keep the serverless function alive while agent runs
-        after(
-            runAgent(id, conversation.id, moduleId, prompt, session.userId, depth, decisions, isContinuation, partialOutput).catch(
-                err => console.error('Agent error:', err)
-            )
-        )
+        const conversation = await createConversation(id, moduleId, prompt)
+        if (billingCheck) {
+            await recordUsageCharge({
+                userId: session.userId,
+                conversationId: conversation.id,
+                moduleId: moduleId as BillingModuleId,
+                snapshot: billingCheck.snapshot,
+            })
+        }
+
+        // Use after() to run agent after response is sent — must be a callback, not a pre-executed Promise
+        after(async () => {
+            try {
+                await runAgent(id, conversation.id, moduleId, prompt, session.userId, depth, decisions, isContinuation, partialOutput)
+            } catch (err) {
+                console.error('Agent error (after):', err)
+            }
+        })
 
         return NextResponse.json(
             { conversationId: conversation.id, status: 'running' },
@@ -257,6 +305,9 @@ export async function POST(
         )
     } catch (e) {
         if (isAuthError(e)) return e.toResponse()
+        if (e instanceof BillingError) {
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status })
+        }
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

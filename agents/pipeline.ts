@@ -328,8 +328,5 @@ Output the complete PipelineOutput JSON.`
         await onComplete(validated)
     }
 
-    await withTimeout(
-        withRetry(run),
-        Number(process.env.PIPELINE_TIMEOUT_MS ?? process.env.AGENT_TIMEOUT_MS ?? 120000)
-    )
+    await withRetry(() => withTimeout(run(), Number(process.env.PIPELINE_TIMEOUT_MS ?? process.env.AGENT_TIMEOUT_MS ?? 180000)))
 }

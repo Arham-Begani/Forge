@@ -12,7 +12,9 @@ export type ModuleId =
   | "feasibility"
   | "general"
   | "shadow-board"
-  | "launch-autopilot";
+  | "launch-autopilot"
+  | "mvp-scalpel"
+  | "investor-kit";
 
 export interface ModuleDefinition {
   id: ModuleId;
@@ -25,7 +27,7 @@ export interface ModuleDefinition {
 const MODULE_GROUPS: { label: string; ids: ModuleId[] }[] = [
   { label: "LAUNCH", ids: ["full-launch", "launch-autopilot"] },
   { label: "AGENTS", ids: ["research", "branding", "marketing", "landing", "feasibility"] },
-  { label: "TOOLS", ids: ["general", "shadow-board"] },
+  { label: "TOOLS", ids: ["general", "shadow-board", "mvp-scalpel", "investor-kit"] },
 ];
 
 export const MODULES: Record<ModuleId, ModuleDefinition> = {
@@ -35,9 +37,11 @@ export const MODULES: Record<ModuleId, ModuleDefinition> = {
   "marketing": { id: "marketing", icon: "▲", label: "Marketing", accent: "#8C5A7A", description: "GTM strategy" },
   "landing": { id: "landing", icon: "▣", label: "Landing Page", accent: "#8C7A5A", description: "Live deployment" },
   "feasibility": { id: "feasibility", icon: "◈", label: "Feasibility", accent: "#7A5A8C", description: "GO/NO-GO verdict" },
-  "general": { id: "general", icon: "◉", label: "General", accent: "#6B8F71", description: "Ask anything" },
+  "general": { id: "general", icon: "◉", label: "Co-pilot", accent: "#6B8F71", description: "Ask anything" },
   "shadow-board": { id: "shadow-board", icon: "⚔", label: "Shadow Board", accent: "#E04848", description: "Silicon board review" },
   "launch-autopilot": { id: "launch-autopilot", icon: "▶", label: "Launch Autopilot", accent: "#B8864E", description: "14-day launch calendar" },
+  "mvp-scalpel": { id: "mvp-scalpel", icon: "✂", label: "MVP Scalpel", accent: "#C45A5A", description: "Cut ruthlessly, ship fast" },
+  "investor-kit": { id: "investor-kit", icon: "◐", label: "Investor Kit", accent: "#7A8C5A", description: "Pitch deck & data room" },
 };
 
 export interface ModulePickerProps {
@@ -66,7 +70,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
   if (!mounted) {
     return (
       <div className="relative inline-block">
-        <div 
+        <div
           style={{
             display: "flex",
             alignItems: "center",
@@ -94,7 +98,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
       {/* Dropdown panel */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
@@ -110,7 +114,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
               boxShadow: "var(--shadow-lg)",
               borderRadius: 16,
               padding: "6px",
-              width: 300,
+              width: 310,
               zIndex: 50,
               display: "flex",
               flexDirection: "column",
@@ -170,11 +174,13 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
                         }}>
                           {mod.icon}
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 500, color: isSelected ? mod.accent : "var(--text)" }}>
-                          {mod.label}
-                        </span>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 500, color: isSelected ? mod.accent : "var(--text)", display: "block" }}>
+                            {mod.label}
+                          </span>
+                        </div>
                       </div>
-                      <span style={{ fontSize: 11, color: "var(--muted)", maxWidth: 100, textAlign: "right", lineHeight: 1.3 }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", maxWidth: 110, textAlign: "right", lineHeight: 1.3 }}>
                         {mod.description}
                       </span>
                     </motion.button>
