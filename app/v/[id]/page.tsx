@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import { resolveLandingComponent, stripGeneratedCodeFences } from "@/lib/landing-page";
 
 export default function VenturePreviewPage() {
   const { id } = useParams();
@@ -25,21 +26,23 @@ export default function VenturePreviewPage() {
         const data = await res.json();
         setVentureName(data.name || "");
 
-        const code = data.landing?.fullComponent;
-        if (!code) {
+        // Resolve the component — handles missing/placeholder fullComponent
+        // by generating a polished fallback from the structured landing copy
+        const resolved = resolveLandingComponent({
+          ventureName: data.name,
+          fullComponent: data.landing?.fullComponent,
+          landingPageCopy: data.landing?.landingPageCopy,
+          seoMetadata: data.landing?.seoMetadata,
+        });
+
+        if (!resolved) {
           setError("Landing page not yet generated for this venture.");
           return;
         }
 
-        // Clean code fences if present
-        const clean = code
-          .replace(/```(?:tsx|jsx|html|javascript|typescript)?\s*/gi, "")
-          .replace(/```\s*/g, "")
-          .trim();
-
         // Build full HTML document for the iframe
         const seo = data.landing?.seoMetadata || {};
-        const fullHtml = buildHtmlDocument(clean, seo, data.name);
+        const fullHtml = buildHtmlDocument(resolved, seo, data.name);
         setHtml(fullHtml);
       } catch (err: any) {
         console.error("Error loading preview:", err);
@@ -147,8 +150,16 @@ export default function VenturePreviewPage() {
   }
 
   return (
-    <iframe
-      ref={iframeRef}
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        position: "relative",
+        background: "#000",
+      }}
+    >
+      <iframe
+        ref={iframeRef}
       title={`${ventureName} — Live Preview`}
       style={{
         width: "100%",
@@ -156,8 +167,34 @@ export default function VenturePreviewPage() {
         border: "none",
         display: "block",
       }}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-    />
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      />
+      <a
+        href="https://tryforge.ai"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: "fixed",
+          left: "50%",
+          bottom: 14,
+          transform: "translateX(-50%)",
+          zIndex: 20,
+          padding: "6px 12px",
+          borderRadius: 999,
+          background: "rgba(0, 0, 0, 0.72)",
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          textDecoration: "none",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          boxShadow: "0 6px 24px rgba(0,0,0,0.28)",
+        }}
+      >
+        Made with Forge
+      </a>
+    </div>
   );
 }
 
