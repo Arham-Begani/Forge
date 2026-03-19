@@ -8,6 +8,7 @@ import {
     getFlashModel,
     Content,
 } from '@/lib/gemini'
+import { resolveLandingComponent } from '@/lib/landing-page'
 
 // ── PipelineOutput Zod Schema ────────────────────────────────────────────────
 
@@ -401,6 +402,15 @@ Output the complete PipelineOutput JSON.`
 
         const raw = extractJSON(fullText) as PipelineOutput
         const validated = PipelineOutputSchema.parse(raw)
+        const branding = venture.context.branding as Record<string, any> | undefined
+
+        validated.fullComponent = resolveLandingComponent({
+            ventureName: branding?.brandName || venture.name,
+            fullComponent: validated.fullComponent,
+            landingPageCopy: validated.landingPageCopy,
+            seoMetadata: validated.seoMetadata,
+            colorPalette: branding?.colorPalette,
+        })
 
         // Post-process: wire deployment and flags
         validated.deploymentUrl = await deployLandingPage(venture.ventureId, validated)
