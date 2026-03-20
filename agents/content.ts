@@ -67,6 +67,97 @@ const ContentOutputSchema = z.object({
 
 export type ContentOutput = z.infer<typeof ContentOutputSchema>
 
+// ── Edit Patch Schema (all fields optional — for surgical updates) ───────────
+
+const ContentEditPatchSchema = z.object({
+    marketingPlan: z.string().optional(),
+    gtmStrategy: z.object({
+        overview: z.string().optional(),
+        weeks: z.array(z.object({
+            week: z.number(),
+            theme: z.string().default('Theme pending'),
+            actions: z.array(z.string()).default([]),
+            kpis: z.array(z.string()).default([]),
+        })).optional(),
+    }).optional(),
+    socialCalendar: z.array(z.object({
+        day: z.number(),
+        platform: z.enum(['x', 'linkedin', 'instagram']).default('x'),
+        caption: z.string().default('Caption pending.'),
+        hashtags: z.array(z.string()).default([]),
+        postType: z.string().default('Social post'),
+    })).optional(),
+    seoOutlines: z.array(z.object({
+        title: z.string(),
+        targetKeyword: z.string().default('Keyword pending'),
+        searchIntent: z.string().default('Informational'),
+        outline: z.array(z.string()).default([]),
+        estimatedTraffic: z.string().default('Low'),
+    })).optional(),
+    emailSequence: z.array(z.object({
+        day: z.number(),
+        subject: z.string().default('Subject pending'),
+        preview: z.string().default('Preview pending'),
+        bodyOutline: z.array(z.string()).default([]),
+    })).optional(),
+    hashtagStrategy: z.object({
+        x: z.array(z.string()).optional(),
+        linkedin: z.array(z.string()).optional(),
+        instagram: z.array(z.string()).optional(),
+    }).optional(),
+})
+
+type ContentEditPatch = z.infer<typeof ContentEditPatchSchema>
+
+// ── Merge patch into existing result ─────────────────────────────────────────
+
+function mergePatch(existing: ContentOutput, patch: ContentEditPatch): ContentOutput {
+    const merged = { ...existing }
+
+    if (patch.marketingPlan !== undefined) merged.marketingPlan = patch.marketingPlan
+
+    if (patch.gtmStrategy) {
+        merged.gtmStrategy = { ...existing.gtmStrategy }
+        if (patch.gtmStrategy.overview !== undefined) merged.gtmStrategy.overview = patch.gtmStrategy.overview
+        if (patch.gtmStrategy.weeks) merged.gtmStrategy.weeks = patch.gtmStrategy.weeks
+    }
+
+    // Arrays replace entirely
+    if (patch.socialCalendar) merged.socialCalendar = patch.socialCalendar
+    if (patch.seoOutlines) merged.seoOutlines = patch.seoOutlines
+    if (patch.emailSequence) merged.emailSequence = patch.emailSequence
+
+    if (patch.hashtagStrategy) {
+        merged.hashtagStrategy = { ...existing.hashtagStrategy }
+        if (patch.hashtagStrategy.x) merged.hashtagStrategy.x = patch.hashtagStrategy.x
+        if (patch.hashtagStrategy.linkedin) merged.hashtagStrategy.linkedin = patch.hashtagStrategy.linkedin
+        if (patch.hashtagStrategy.instagram) merged.hashtagStrategy.instagram = patch.hashtagStrategy.instagram
+    }
+
+    return merged
+}
+
+// ── Edit System Prompt ───────────────────────────────────────────────────────
+
+const EDIT_SYSTEM_PROMPT = `
+# Content Factory — Surgical Edit Mode
+
+You are editing an EXISTING marketing output. The user wants a specific change — do NOT regenerate everything.
+
+## Rules
+1. Read the existing marketing data carefully
+2. Identify ONLY the fields that need to change based on the user's request
+3. Output a JSON patch containing ONLY the changed fields
+4. Unchanged fields must be OMITTED (not copied)
+5. For nested objects (gtmStrategy, hashtagStrategy), include only changed sub-fields
+6. For arrays (socialCalendar, seoOutlines, emailSequence), if ANY item changes, include the entire array
+
+## Output Format
+Output ONLY a JSON object with the changed fields. No markdown fences, no explanation.
+Example: if the user asks to change the email sequence, output:
+{"emailSequence": [{"day": 0, "subject": "New subject", "preview": "New preview", "bodyOutline": ["point 1"]}]}
+`
+
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `
@@ -209,8 +300,89 @@ export async function runContentAgent(
 
     const contextParts: string[] = []
     if (venture.globalIdea) contextParts.push(`Global Startup Vision: ${venture.globalIdea}`)
-    if (hasResearch) contextParts.push(`Market research:\n${JSON.stringify(venture.context.research, null, 2)}`)
-    if (hasBranding) contextParts.push(`Brand identity:\n${JSON.stringify(venture.context.branding, null, 2)}`)
+
+    // Research — extract only fields the marketing agent needs (not the full ~20KB dump)
+    if (hasResearch) {
+        const r = venture.context.research as Record<string, any>
+        const lines: string[] = []
+        if (r.marketSummary) lines.push(`Market: ${r.marketSummary}`)
+        const tam = r.tam?.value || (typeof r.tam === 'string' ? r.tam : '')
+        if (tam) lines.push(`TAM: ${tam}`)
+        if (r.targetAudience || r.targetCustomer) lines.push(`Target customer: ${r.targetAudience || r.targetCustomer}`)
+        if (r.competitorGap) lines.push(`Market gap: ${r.competitorGap}`)
+        if (Array.isArray(r.painPoints) && r.painPoints.length > 0) {
+            const pains = r.painPoints.slice(0, 5).map((p: any, i: number) => {
+                const desc = typeof p === 'object' ? (p.description || p.name || JSON.stringify(p)) : String(p)
+                return `  ${i + 1}. ${desc}`
+            })
+            lines.push(`Pain points (reference in social captions & email copy):\n${pains.join('\n')}`)
+        }
+        if (Array.isArray(r.competitors) && r.competitors.length > 0) {
+            const comps = r.competitors.slice(0, 5).map((c: any) => {
+                const name = typeof c === 'object' ? (c.name || JSON.stringify(c)) : String(c)
+                const positioning = typeof c === 'object' ? (c.positioning || c.weakness || c.gap || '') : ''
+                return `  - ${name}${positioning ? `: ${positioning}` : ''}`
+            })
+            lines.push(`Competitors:\n${comps.join('\n')}`)
+        }
+        if (lines.length > 0) contextParts.push(`## Market Research\n${lines.join('\n')}`)
+    }
+
+    // Branding — extract voice & identity tokens only (skip colorPalette, logoConceptDescriptions, uiKitSpec, typography, nameCandidates)
+    if (hasBranding) {
+        const b = venture.context.branding as Record<string, any>
+        const lines: string[] = []
+        if (b.brandName) lines.push(`Brand name: ${b.brandName}`)
+        if (b.tagline) lines.push(`Tagline: "${b.tagline}"`)
+        if (b.brandArchetype) lines.push(`Archetype: ${b.brandArchetype}`)
+        if (b.toneOfVoice) {
+            const tone = typeof b.toneOfVoice === 'object' ? (b.toneOfVoice.description || b.toneOfVoice.name || String(b.toneOfVoice)) : String(b.toneOfVoice)
+            lines.push(`Tone of voice: ${tone}`)
+        }
+        if (Array.isArray(b.brandPersonality) && b.brandPersonality.length > 0) {
+            lines.push(`Brand personality: ${b.brandPersonality.join(', ')}`)
+        }
+        if (b.missionStatement) lines.push(`Mission: ${b.missionStatement}`)
+        if (lines.length > 0) contextParts.push(`## Brand Identity (use this voice consistently across all content)\n${lines.join('\n')}`)
+    }
+
+    // ── Edit mode detection ──
+    const existingMarketing = venture.context.marketing as ContentOutput | null | undefined
+    const isEditMode = !history.length && !!existingMarketing?.gtmStrategy?.overview && existingMarketing.gtmStrategy.overview.length > 20
+
+    if (isEditMode) {
+        await onStream('[Edit mode] Applying surgical changes to existing marketing content...\n')
+
+        const existingForContext = {
+            gtmStrategy: existingMarketing!.gtmStrategy,
+            socialCalendar: existingMarketing!.socialCalendar?.slice(0, 10),
+            seoOutlines: existingMarketing!.seoOutlines,
+            emailSequence: existingMarketing!.emailSequence,
+            hashtagStrategy: existingMarketing!.hashtagStrategy,
+            marketingPlan: existingMarketing!.marketingPlan?.length > 500
+                ? existingMarketing!.marketingPlan.slice(0, 250) + '\n... [truncated] ...\n' + existingMarketing!.marketingPlan.slice(-250)
+                : existingMarketing!.marketingPlan,
+        }
+
+        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Marketing Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+
+        const editRun = async () => {
+            const model = getFlashModel()
+            let fullText = ''
+            await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, async (chunk) => {
+                fullText += chunk
+                await onStream(chunk)
+            })
+            const rawPatch = extractJSON(fullText) as ContentEditPatch
+            const validatedPatch = ContentEditPatchSchema.parse(rawPatch)
+            const merged = mergePatch(existingMarketing!, validatedPatch)
+            const validated = ContentOutputSchema.parse(merged)
+            await onComplete(validated)
+        }
+
+        await withTimeout(withRetry(editRun), Number(process.env.AGENT_TIMEOUT_MS ?? 120000))
+        return
+    }
 
     const isContinuation = history.length > 0
     const userMessage = isContinuation
