@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+    getFlashModel,
     getProModelWithThinking,
     streamPrompt,
     extractJSON,
@@ -38,6 +39,68 @@ const ShadowBoardSchema = z.object({
 })
 
 export type ShadowBoardOutput = z.infer<typeof ShadowBoardSchema>
+
+// ── Edit Patch Schema (all fields optional — for surgical updates) ───────────
+
+const ShadowBoardEditPatchSchema = z.object({
+    survivalScore: z.number().min(1).max(100).optional(),
+    verdictLabel: z.string().optional(),
+    boardDialogue: z.array(z.object({
+        role: z.string().default('The Skeptic'),
+        thought: z.string().default('Thought pending.'),
+        brutalHonesty: z.string().default('Honesty pending.'),
+    })).optional(),
+    strategicPivots: z.array(z.object({
+        currentPath: z.string().default('Current path'),
+        betterPath: z.string().default('Better path'),
+        rationale: z.string().default('Rationale pending'),
+    })).optional(),
+    syntheticFeedback: z.array(z.object({
+        persona: z.string().default('Target User'),
+        quote: z.string().default('Feedback pending.'),
+        sentiment: z.enum(['positive', 'neutral', 'negative']).default('neutral'),
+        criticalFlaw: z.string().default('Critical flaw pending.'),
+    })).optional(),
+})
+
+type ShadowBoardEditPatch = z.infer<typeof ShadowBoardEditPatchSchema>
+
+// ── Merge patch into existing result ─────────────────────────────────────────
+
+function mergePatch(existing: ShadowBoardOutput, patch: ShadowBoardEditPatch): ShadowBoardOutput {
+    const merged = { ...existing }
+
+    if (patch.survivalScore !== undefined) merged.survivalScore = patch.survivalScore
+    if (patch.verdictLabel !== undefined) merged.verdictLabel = patch.verdictLabel
+
+    // Arrays replace entirely
+    if (patch.boardDialogue) merged.boardDialogue = patch.boardDialogue
+    if (patch.strategicPivots) merged.strategicPivots = patch.strategicPivots
+    if (patch.syntheticFeedback) merged.syntheticFeedback = patch.syntheticFeedback
+
+    return merged
+}
+
+// ── Edit System Prompt ───────────────────────────────────────────────────────
+
+const EDIT_SYSTEM_PROMPT = `
+# Shadow Board — Surgical Edit Mode
+
+You are editing an EXISTING Shadow Board verdict. The user wants a specific change — do NOT regenerate the entire board meeting.
+
+## Rules
+1. Read the existing board data carefully
+2. Identify ONLY the fields that need to change based on the user's request
+3. Output a JSON patch containing ONLY the changed fields
+4. Unchanged fields must be OMITTED (not copied)
+5. For arrays (boardDialogue, strategicPivots, syntheticFeedback), if ANY item changes, include the entire array
+6. Maintain the brutal, honest Silicon Valley tone
+
+## Output Format
+Output ONLY a JSON object with the changed fields. No markdown fences, no explanation.
+Example: if the user asks to reconsider the survival score, output:
+{"survivalScore": 72, "verdictLabel": "Cautious Optimism"}
+`
 
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
@@ -105,9 +168,123 @@ export async function runShadowBoard(
     onComplete: (result: ShadowBoardOutput) => Promise<void>,
     history: Content[] = []
 ): Promise<void> {
-    const researchContext = venture.context.research ? JSON.stringify(venture.context.research, null, 2) : 'No research data available — analyze based on the venture concept.'
-    const brandingContext = venture.context.branding ? JSON.stringify(venture.context.branding, null, 2) : 'No branding data available.'
-    const feasibilityContext = venture.context.feasibility ? JSON.stringify(venture.context.feasibility, null, 2) : 'No feasibility data available.'
+    // ── Edit mode detection ──
+    const existingShadow = venture.context.shadowBoard as ShadowBoardOutput | null | undefined
+    const isEditMode = !history.length && !!existingShadow?.verdictLabel && existingShadow.verdictLabel.length > 2
+
+    if (isEditMode) {
+        await onStream('[Edit mode] Applying surgical changes to existing Shadow Board verdict...\n')
+
+        const existingForContext = {
+            survivalScore: existingShadow!.survivalScore,
+            verdictLabel: existingShadow!.verdictLabel,
+            boardDialogue: existingShadow!.boardDialogue,
+            strategicPivots: existingShadow!.strategicPivots,
+            syntheticFeedback: existingShadow!.syntheticFeedback,
+        }
+
+        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Shadow Board Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+
+        const editRun = async () => {
+            const model = getFlashModel()
+            const fullText = await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, onStream)
+            const rawPatch = extractJSON(fullText) as ShadowBoardEditPatch
+            const validatedPatch = ShadowBoardEditPatchSchema.parse(rawPatch)
+            const merged = mergePatch(existingShadow!, validatedPatch)
+            const validated = ShadowBoardSchema.parse(merged)
+            await onComplete(validated)
+        }
+
+        await withTimeout(withRetry(editRun), 180000)
+        return
+    }
+
+    // ── Research: extract only strategic data the board needs ──
+    let researchContext = 'No research data available — analyze based on the venture concept.'
+    if (venture.context.research) {
+        const r = venture.context.research as Record<string, any>
+        const lines: string[] = []
+        if (r.marketSummary) lines.push(`Market Summary: ${r.marketSummary}`)
+        const tam = r.tam?.value || (typeof r.tam === 'string' ? r.tam : '')
+        if (tam) lines.push(`TAM: ${tam}`)
+        const sam = r.sam?.value || (typeof r.sam === 'string' ? r.sam : '')
+        if (sam) lines.push(`SAM: ${sam}`)
+        const som = r.som?.value || (typeof r.som === 'string' ? r.som : '')
+        if (som) lines.push(`SOM: ${som}`)
+        if (Array.isArray(r.painPoints) && r.painPoints.length > 0) {
+            const pains = r.painPoints.slice(0, 5).map((p: any, i: number) => {
+                const desc = typeof p === 'object' ? (p.description || p.name || String(p)) : String(p)
+                return `  ${i + 1}. ${desc}`
+            })
+            lines.push(`Key Pain Points:\n${pains.join('\n')}`)
+        }
+        if (Array.isArray(r.competitors) && r.competitors.length > 0) {
+            const comps = r.competitors.slice(0, 3).map((c: any) => {
+                const name = typeof c === 'object' ? (c.name || String(c)) : String(c)
+                const weakness = typeof c === 'object' ? (c.weakness || c.gap || '') : ''
+                return `  - ${name}${weakness ? ` (weakness: ${weakness})` : ''}`
+            })
+            lines.push(`Top Competitors:\n${comps.join('\n')}`)
+        }
+        if (r.competitorGap) lines.push(`Competitor Gap: ${r.competitorGap}`)
+        if (r.recommendedConcept) {
+            const rc = typeof r.recommendedConcept === 'object'
+                ? (r.recommendedConcept.name || r.recommendedConcept.concept || String(r.recommendedConcept))
+                : String(r.recommendedConcept)
+            lines.push(`Recommended Concept: ${rc}`)
+        }
+        researchContext = lines.length > 0 ? lines.join('\n') : 'Research data present but no key fields found.'
+    }
+
+    // ── Branding: extract identity essentials only ──
+    let brandingContext = 'No branding data available.'
+    if (venture.context.branding) {
+        const b = venture.context.branding as Record<string, any>
+        const lines: string[] = []
+        if (b.brandName) lines.push(`Brand Name: ${b.brandName}`)
+        if (b.tagline) lines.push(`Tagline: "${b.tagline}"`)
+        if (b.brandArchetype) lines.push(`Brand Archetype: ${b.brandArchetype}`)
+        if (b.toneOfVoice) {
+            const tone = typeof b.toneOfVoice === 'object' ? (b.toneOfVoice.description || b.toneOfVoice.name || String(b.toneOfVoice)) : String(b.toneOfVoice)
+            lines.push(`Tone of Voice: ${tone}`)
+        }
+        brandingContext = lines.length > 0 ? lines.join('\n') : 'Branding data present but no key fields found.'
+    }
+
+    // ── Feasibility: extract verdict, financials, and top risks ──
+    let feasibilityContext = 'No feasibility data available.'
+    if (venture.context.feasibility) {
+        const f = venture.context.feasibility as Record<string, any>
+        const lines: string[] = []
+        if (f.verdict) lines.push(`Verdict: ${f.verdict}`)
+        if (f.verdictRationale) lines.push(`Rationale: ${f.verdictRationale}`)
+        if (f.marketTimingScore != null) lines.push(`Market Timing Score: ${f.marketTimingScore}`)
+        if (f.marketTimingRationale) lines.push(`Market Timing: ${f.marketTimingRationale}`)
+        const fm = f.financialModel
+        if (fm) {
+            const y1 = fm.yearOne
+            if (y1) {
+                const rev = y1.revenue ?? y1.projectedRevenue ?? 'N/A'
+                const costs = y1.costs ?? y1.totalCosts ?? 'N/A'
+                const net = y1.netIncome ?? y1.profit ?? 'N/A'
+                lines.push(`Year 1 Financials: Revenue=${rev}, Costs=${costs}, Net Income=${net}`)
+            }
+            if (fm.breakEvenMonth != null) lines.push(`Break-Even Month: ${fm.breakEvenMonth}`)
+            if (fm.ltvCacRatio != null) lines.push(`LTV/CAC Ratio: ${fm.ltvCacRatio}`)
+        }
+        if (Array.isArray(f.risks) && f.risks.length > 0) {
+            const topRisks = f.risks.slice(0, 3).map((rk: any, i: number) => {
+                const risk = typeof rk === 'object' ? (rk.risk || rk.name || String(rk)) : String(rk)
+                const likelihood = typeof rk === 'object' ? (rk.likelihood || '') : ''
+                const impact = typeof rk === 'object' ? (rk.impact || '') : ''
+                const mitigation = typeof rk === 'object' ? (rk.mitigation || '') : ''
+                return `  ${i + 1}. ${risk}${likelihood ? ` | Likelihood: ${likelihood}` : ''}${impact ? ` | Impact: ${impact}` : ''}${mitigation ? ` | Mitigation: ${mitigation}` : ''}`
+            })
+            lines.push(`Top Risks:\n${topRisks.join('\n')}`)
+        }
+        if (f.competitiveMoat) lines.push(`Competitive Moat: ${f.competitiveMoat}`)
+        feasibilityContext = lines.length > 0 ? lines.join('\n') : 'Feasibility data present but no key fields found.'
+    }
 
     const userMessage = `Convene the Shadow Board for the venture: "${venture.name}".
 
