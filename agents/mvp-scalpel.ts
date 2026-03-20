@@ -105,6 +105,145 @@ export const MVPScalpelSchema = z.object({
 
 export type MVPScalpelOutput = z.infer<typeof MVPScalpelSchema>
 
+// ── Edit Patch Schema (all fields optional — for surgical updates) ───────────
+
+const MVPScalpelEditPatchSchema = z.object({
+    killList: z.array(z.object({
+        feature: z.string().default('Feature name'),
+        whyItFeelsEssential: z.string().default('Seems important because...'),
+        whyItKills: z.string().default('Wastes time because...'),
+        whenToBuild: z.string().default('After first 50 paying customers'),
+        effort: z.enum(['days', 'weeks', 'months']).default('weeks'),
+    })).optional(),
+    skeletonMVP: z.object({
+        oneLiner: z.string().optional(),
+        coreHypothesis: z.string().optional(),
+        features: z.array(z.object({
+            name: z.string().default('Core Feature'),
+            description: z.string().default('Description pending.'),
+            whyIncluded: z.string().default('Directly tests the core hypothesis.'),
+        })).optional(),
+        explicitlyExcluded: z.array(z.string()).optional(),
+        successCriteria: z.string().optional(),
+    }).optional(),
+    weekendSpec: z.object({
+        totalHours: z.number().optional(),
+        techStack: z.array(z.string()).optional(),
+        pages: z.array(z.object({
+            name: z.string().default('Page'),
+            purpose: z.string().default('Purpose pending.'),
+            components: z.array(z.string()).default([]),
+        })).optional(),
+        endpoints: z.array(z.object({
+            method: z.string().default('GET'),
+            path: z.string().default('/api/endpoint'),
+            purpose: z.string().default('Purpose pending.'),
+        })).optional(),
+        thirdPartyServices: z.array(z.object({
+            name: z.string().default('Service'),
+            purpose: z.string().default('Purpose pending.'),
+            cost: z.string().default('Free tier'),
+        })).optional(),
+        hourByHourPlan: z.array(z.object({
+            hour: z.string().default('Hour 1'),
+            task: z.string().default('Task pending.'),
+            deliverable: z.string().default('Deliverable pending.'),
+        })).optional(),
+        deployTarget: z.string().optional(),
+        launchReady: z.string().optional(),
+    }).optional(),
+    timeToFirstDollar: z.object({
+        estimatedDays: z.number().optional(),
+        breakdown: z.array(z.object({
+            phase: z.string().default('Phase'),
+            days: z.number().default(1),
+            description: z.string().default('Description pending.'),
+        })).optional(),
+        assumptions: z.array(z.string()).optional(),
+        fastestPath: z.string().optional(),
+    }).optional(),
+    antiScopeCreepRules: z.array(z.object({
+        rule: z.string().default('Rule pending.'),
+        why: z.string().default('Reason pending.'),
+    })).optional(),
+    verdict: z.object({
+        readiness: z.enum(['ship-now', 'almost-ready', 'needs-rethink']).optional(),
+        summary: z.string().optional(),
+    }).optional(),
+})
+
+type MVPScalpelEditPatch = z.infer<typeof MVPScalpelEditPatchSchema>
+
+// ── Merge patch into existing result ─────────────────────────────────────────
+
+function mergePatch(existing: MVPScalpelOutput, patch: MVPScalpelEditPatch): MVPScalpelOutput {
+    const merged = { ...existing }
+
+    // Arrays replace entirely
+    if (patch.killList) merged.killList = patch.killList
+    if (patch.antiScopeCreepRules) merged.antiScopeCreepRules = patch.antiScopeCreepRules
+
+    // Nested objects merge at sub-field level
+    if (patch.skeletonMVP) {
+        merged.skeletonMVP = { ...existing.skeletonMVP }
+        if (patch.skeletonMVP.oneLiner !== undefined) merged.skeletonMVP.oneLiner = patch.skeletonMVP.oneLiner
+        if (patch.skeletonMVP.coreHypothesis !== undefined) merged.skeletonMVP.coreHypothesis = patch.skeletonMVP.coreHypothesis
+        if (patch.skeletonMVP.successCriteria !== undefined) merged.skeletonMVP.successCriteria = patch.skeletonMVP.successCriteria
+        if (patch.skeletonMVP.features) merged.skeletonMVP.features = patch.skeletonMVP.features
+        if (patch.skeletonMVP.explicitlyExcluded) merged.skeletonMVP.explicitlyExcluded = patch.skeletonMVP.explicitlyExcluded
+    }
+
+    if (patch.weekendSpec) {
+        merged.weekendSpec = { ...existing.weekendSpec }
+        if (patch.weekendSpec.totalHours !== undefined) merged.weekendSpec.totalHours = patch.weekendSpec.totalHours
+        if (patch.weekendSpec.deployTarget !== undefined) merged.weekendSpec.deployTarget = patch.weekendSpec.deployTarget
+        if (patch.weekendSpec.launchReady !== undefined) merged.weekendSpec.launchReady = patch.weekendSpec.launchReady
+        if (patch.weekendSpec.techStack) merged.weekendSpec.techStack = patch.weekendSpec.techStack
+        if (patch.weekendSpec.pages) merged.weekendSpec.pages = patch.weekendSpec.pages
+        if (patch.weekendSpec.endpoints) merged.weekendSpec.endpoints = patch.weekendSpec.endpoints
+        if (patch.weekendSpec.thirdPartyServices) merged.weekendSpec.thirdPartyServices = patch.weekendSpec.thirdPartyServices
+        if (patch.weekendSpec.hourByHourPlan) merged.weekendSpec.hourByHourPlan = patch.weekendSpec.hourByHourPlan
+    }
+
+    if (patch.timeToFirstDollar) {
+        merged.timeToFirstDollar = { ...existing.timeToFirstDollar }
+        if (patch.timeToFirstDollar.estimatedDays !== undefined) merged.timeToFirstDollar.estimatedDays = patch.timeToFirstDollar.estimatedDays
+        if (patch.timeToFirstDollar.fastestPath !== undefined) merged.timeToFirstDollar.fastestPath = patch.timeToFirstDollar.fastestPath
+        if (patch.timeToFirstDollar.breakdown) merged.timeToFirstDollar.breakdown = patch.timeToFirstDollar.breakdown
+        if (patch.timeToFirstDollar.assumptions) merged.timeToFirstDollar.assumptions = patch.timeToFirstDollar.assumptions
+    }
+
+    if (patch.verdict) {
+        merged.verdict = { ...existing.verdict }
+        if (patch.verdict.readiness !== undefined) merged.verdict.readiness = patch.verdict.readiness
+        if (patch.verdict.summary !== undefined) merged.verdict.summary = patch.verdict.summary
+    }
+
+    return merged
+}
+
+// ── Edit System Prompt ───────────────────────────────────────────────────────
+
+const EDIT_SYSTEM_PROMPT = `
+# MVP Scalpel — Surgical Edit Mode
+
+You are editing an EXISTING MVP scalpel output. The user wants a specific change — do NOT regenerate everything.
+
+## Rules
+1. Read the existing MVP data carefully
+2. Identify ONLY the fields that need to change based on the user's request
+3. Output a JSON patch containing ONLY the changed fields
+4. Unchanged fields must be OMITTED (not copied)
+5. For nested objects (skeletonMVP, weekendSpec, timeToFirstDollar, verdict), include only changed sub-fields
+6. For arrays (killList, antiScopeCreepRules), if ANY item changes, include the entire array
+7. Maintain the brutally specific, YC-caliber tone — no generic advice
+
+## Output Format
+Output ONLY a JSON object with the changed fields. No markdown fences, no explanation.
+Example: if the user asks to change the tech stack, output:
+{"weekendSpec": {"techStack": ["Next.js 15", "Supabase", "Stripe", "Tailwind CSS"]}}
+`
+
 // ── System Prompt ───────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `
@@ -228,6 +367,44 @@ export async function runMVPScalpelAgent(
     history: Content[] = []
 ): Promise<void> {
     const model = getFlashModel()
+
+    // ── Edit mode detection ──
+    const existingMVP = venture.context.mvpScalpel as MVPScalpelOutput | null | undefined
+    const isEditMode = !history.length && !!existingMVP?.verdict?.summary && existingMVP.verdict.summary.length > 20
+
+    if (isEditMode) {
+        await onStream('[Edit mode] Applying surgical changes to existing MVP scalpel output...\n')
+
+        const existingForContext = {
+            killList: existingMVP!.killList?.slice(0, 5),
+            skeletonMVP: existingMVP!.skeletonMVP,
+            weekendSpec: {
+                totalHours: existingMVP!.weekendSpec?.totalHours,
+                techStack: existingMVP!.weekendSpec?.techStack,
+                pages: existingMVP!.weekendSpec?.pages,
+                endpoints: existingMVP!.weekendSpec?.endpoints,
+                thirdPartyServices: existingMVP!.weekendSpec?.thirdPartyServices,
+                deployTarget: existingMVP!.weekendSpec?.deployTarget,
+            },
+            timeToFirstDollar: existingMVP!.timeToFirstDollar,
+            antiScopeCreepRules: existingMVP!.antiScopeCreepRules,
+            verdict: existingMVP!.verdict,
+        }
+
+        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current MVP Scalpel Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+
+        const editRun = async () => {
+            const fullText = await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, onStream)
+            const rawPatch = extractJSON(fullText) as MVPScalpelEditPatch
+            const validatedPatch = MVPScalpelEditPatchSchema.parse(rawPatch)
+            const merged = mergePatch(existingMVP!, validatedPatch)
+            const validated = MVPScalpelSchema.parse(merged)
+            await onComplete(validated)
+        }
+
+        await withRetry(() => withTimeout(editRun(), 180_000))
+        return
+    }
 
     // Build context block from available venture data
     const contextParts: string[] = []
