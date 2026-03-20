@@ -277,23 +277,14 @@ export async function updateVentureContext(
 ): Promise<void> {
   const db = await createDb()
 
-  // Fetch existing context first, then merge
-  const { data: venture, error: fetchError } = await db
-    .from('ventures')
-    .select('context')
-    .eq('id', id)
-    .single()
+  // Use atomic RPC to merge context and prevent race conditions
+  const { error } = await db.rpc('merge_venture_context', {
+    venture_id_val: id,
+    context_key: contextKey,
+    context_value: JSON.stringify(value),
+  })
 
-  if (fetchError) throw new Error(`updateVentureContext fetch failed: ${fetchError.message}`)
-
-  const updatedContext = { ...venture.context, [contextKey]: value }
-
-  const { error } = await db
-    .from('ventures')
-    .update({ context: updatedContext, updated_at: new Date().toISOString() })
-    .eq('id', id)
-
-  if (error) throw new Error(`updateVentureContext update failed: ${error.message}`)
+  if (error) throw new Error(`updateVentureContext failed: ${error.message}`)
 }
 
 export async function deleteVenture(id: string): Promise<void> {
@@ -336,23 +327,15 @@ export async function updateConversationStatus(
 export async function appendStreamLine(id: string, line: string): Promise<void> {
   const db = await createDb()
 
-  // Fetch current stream_output, append, write back
-  const { data, error: fetchError } = await db
-    .from('conversations')
-    .select('stream_output')
-    .eq('id', id)
-    .single()
+  // Use atomic RPC to append to stream_output array and prevent race conditions
+  const { error } = await db.rpc('append_to_jsonb_array', {
+    table_name: 'conversations',
+    id_val: id,
+    col_name: 'stream_output',
+    new_value: line,
+  })
 
-  if (fetchError) throw new Error(`appendStreamLine fetch failed: ${fetchError.message}`)
-
-  const updated = [...(data.stream_output ?? []), line]
-
-  const { error } = await db
-    .from('conversations')
-    .update({ stream_output: updated })
-    .eq('id', id)
-
-  if (error) throw new Error(`appendStreamLine update failed: ${error.message}`)
+  if (error) throw new Error(`appendStreamLine failed: ${error.message}`)
 }
 
 export async function setConversationResult(
@@ -511,18 +494,13 @@ export async function getInvestorKitByCode(code: string): Promise<(InvestorKit &
 
 export async function incrementKitViews(kitId: string): Promise<void> {
   const db = await createDb()
-  const { data, error: fetchError } = await db
-    .from('investor_kits')
-    .select('views')
-    .eq('id', kitId)
-    .single()
-
-  if (fetchError) return
-
-  const { error } = await db
-    .from('investor_kits')
-    .update({ views: (data.views ?? 0) + 1 })
-    .eq('id', kitId)
+  
+  // Use atomic RPC to increment views and prevent race conditions
+  const { error } = await db.rpc('increment_int_column', {
+    table_name: 'investor_kits',
+    id_val: kitId,
+    col_name: 'views',
+  })
 
   if (error) console.error('incrementKitViews failed:', error.message)
 }
@@ -595,10 +573,12 @@ export async function createCohort(
 
 export async function updateCohortVariants(cohortId: string, variantIds: string[]): Promise<void> {
   const db = await createDb()
-  const { error } = await db
-    .from('cohorts')
-    .update({ variant_ids: variantIds, updated_at: new Date().toISOString() })
-    .eq('id', cohortId)
+  
+  // Use atomic RPC to update variant array and prevent race conditions
+  const { error } = await db.rpc('set_cohort_variants', {
+    cohort_id_val: cohortId,
+    variant_ids_array: variantIds,
+  })
 
   if (error) throw new Error(`updateCohortVariants failed: ${error.message}`)
 }
