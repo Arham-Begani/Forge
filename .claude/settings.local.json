@@ -28,7 +28,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(node:*)",
       "Bash(git commit:*)",
-      "Bash(find /c/Users/arham/Documents/Github/Forge -name *TimelinePanel* -o -name *timeline*)"
+      "Bash(find /c/Users/arham/Documents/Github/Forge -name *TimelinePanel* -o -name *timeline*)",
+      "Bash(wc -l /c/Users/arham/Documents/Github/Forge/agents/*.ts)"
     ]
   }
 }
