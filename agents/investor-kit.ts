@@ -32,6 +32,69 @@ export const InvestorKitSchema = z.object({
 
 export type InvestorKitOutput = z.infer<typeof InvestorKitSchema>
 
+// ── Edit Patch Schema (all fields optional — for surgical updates) ───────────
+
+const InvestorKitEditPatchSchema = z.object({
+    executiveSummary: z.string().optional(),
+    pitchDeckOutline: z.array(z.object({
+        slide: z.string().default('Slide Title'),
+        content: z.string().default('Slide contents pending.'),
+        speakerNotes: z.string().default('Speaker notes pending.'),
+    })).optional(),
+    onePageMemo: z.string().optional(),
+    askDetails: z.object({
+        suggestedRaise: z.string().optional(),
+        useOfFunds: z.array(z.string()).optional(),
+        keyMilestones: z.array(z.string()).optional(),
+    }).optional(),
+    dataRoomSections: z.array(z.string()).optional(),
+})
+
+type InvestorKitEditPatch = z.infer<typeof InvestorKitEditPatchSchema>
+
+// ── Merge patch into existing result ─────────────────────────────────────────
+
+function mergePatch(existing: InvestorKitOutput, patch: InvestorKitEditPatch): InvestorKitOutput {
+    const merged = { ...existing }
+
+    if (patch.executiveSummary !== undefined) merged.executiveSummary = patch.executiveSummary
+    if (patch.onePageMemo !== undefined) merged.onePageMemo = patch.onePageMemo
+
+    // Arrays replace entirely
+    if (patch.pitchDeckOutline) merged.pitchDeckOutline = patch.pitchDeckOutline
+    if (patch.dataRoomSections) merged.dataRoomSections = patch.dataRoomSections
+
+    if (patch.askDetails) {
+        merged.askDetails = { ...existing.askDetails }
+        if (patch.askDetails.suggestedRaise !== undefined) merged.askDetails.suggestedRaise = patch.askDetails.suggestedRaise
+        if (patch.askDetails.useOfFunds) merged.askDetails.useOfFunds = patch.askDetails.useOfFunds
+        if (patch.askDetails.keyMilestones) merged.askDetails.keyMilestones = patch.askDetails.keyMilestones
+    }
+
+    return merged
+}
+
+// ── Edit System Prompt ───────────────────────────────────────────────────────
+
+const EDIT_SYSTEM_PROMPT = `
+# Investor Kit — Surgical Edit Mode
+
+You are editing an EXISTING investor kit. The user wants a specific change — do NOT regenerate everything.
+
+## Rules
+1. Read the existing investor kit data carefully
+2. Identify ONLY the fields that need to change based on the user's request
+3. Output a JSON patch containing ONLY the changed fields
+4. Unchanged fields must be OMITTED (not copied)
+5. For askDetails, include only changed sub-fields
+6. For arrays (pitchDeckOutline, dataRoomSections), if ANY item changes, include the entire array
+
+## Output Format
+Output ONLY a JSON object with the changed fields. No markdown fences, no explanation.
+Example: if the user asks to change the suggested raise amount, output:
+{"askDetails": {"suggestedRaise": "$750K pre-seed"}}
+`
+
 // ── System Prompt ───────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `
@@ -110,6 +173,40 @@ export async function runInvestorKitAgent(
 ): Promise<void> {
     const model = getFlashModel()
 
+    // ── Edit mode detection ──
+    const existingKit = venture.context.investorKit as InvestorKitOutput | null | undefined
+    const isEditMode = !history.length && !!existingKit?.executiveSummary && existingKit.executiveSummary.length > 50
+
+    if (isEditMode) {
+        await onStream('[Edit mode] Applying surgical changes to existing investor kit...\n')
+
+        const existingForContext = {
+            executiveSummary: existingKit!.executiveSummary?.length > 500
+                ? existingKit!.executiveSummary.slice(0, 250) + '\n... [truncated] ...\n' + existingKit!.executiveSummary.slice(-250)
+                : existingKit!.executiveSummary,
+            pitchDeckOutline: existingKit!.pitchDeckOutline,
+            askDetails: existingKit!.askDetails,
+            dataRoomSections: existingKit!.dataRoomSections,
+            onePageMemo: existingKit!.onePageMemo?.length > 500
+                ? existingKit!.onePageMemo.slice(0, 250) + '\n... [truncated] ...\n' + existingKit!.onePageMemo.slice(-250)
+                : existingKit!.onePageMemo,
+        }
+
+        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Investor Kit\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+
+        const editRun = async () => {
+            const fullText = await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, onStream)
+            const rawPatch = extractJSON(fullText) as InvestorKitEditPatch
+            const validatedPatch = InvestorKitEditPatchSchema.parse(rawPatch)
+            const merged = mergePatch(existingKit!, validatedPatch)
+            const validated = InvestorKitSchema.parse(merged)
+            await onComplete(validated)
+        }
+
+        await withTimeout(withRetry(editRun), 180_000)
+        return
+    }
+
     // Build context block from all available venture data
     const contextParts: string[] = []
 
@@ -117,22 +214,82 @@ export async function runInvestorKitAgent(
         contextParts.push(`Venture Vision: ${venture.globalIdea}`)
     }
 
+    // Research — extract only investor-relevant metrics
     if (venture.context?.research) {
-        contextParts.push(`Market Research Data:\n${JSON.stringify(venture.context.research, null, 2)}`)
+        const r = venture.context.research as Record<string, any>
+        const lines: string[] = []
+        if (r.marketSummary) lines.push(`Market: ${r.marketSummary}`)
+        const tamValue = r.tam?.value || (typeof r.tam === 'string' ? r.tam : '')
+        const tamSource = r.tam?.source ? ` (source: ${r.tam.source})` : ''
+        if (tamValue) lines.push(`TAM: ${tamValue}${tamSource}`)
+        if (r.sam?.value) lines.push(`SAM: ${r.sam.value}`)
+        if (r.som?.value) lines.push(`SOM: ${r.som.value}`)
+        if (r.targetAudience || r.targetCustomer) lines.push(`Target customer: ${r.targetAudience || r.targetCustomer}`)
+        if (r.competitorGap) lines.push(`Market gap: ${r.competitorGap}`)
+        if (r.recommendedConcept) lines.push(`Recommended concept: ${typeof r.recommendedConcept === 'object' ? (r.recommendedConcept.name || JSON.stringify(r.recommendedConcept)) : String(r.recommendedConcept)}`)
+        if (Array.isArray(r.painPoints) && r.painPoints.length > 0) {
+            const pains = r.painPoints.slice(0, 3).map((p: any, i: number) => {
+                const desc = typeof p === 'object' ? (p.description || p.name || JSON.stringify(p)) : String(p)
+                return `  ${i + 1}. ${desc}`
+            })
+            lines.push(`Key pain points:\n${pains.join('\n')}`)
+        }
+        if (Array.isArray(r.competitors) && r.competitors.length > 0) {
+            const comps = r.competitors.slice(0, 3).map((c: any) => {
+                const name = typeof c === 'object' ? (c.name || JSON.stringify(c)) : String(c)
+                const positioning = typeof c === 'object' && c.positioning ? ` | positioning: "${c.positioning}"` : ''
+                const weakness = typeof c === 'object' ? (c.weakness || c.gap || '') : ''
+                return `  - ${name}${positioning}${weakness ? ` | weakness: "${weakness}"` : ''}`
+            })
+            lines.push(`Competitors:\n${comps.join('\n')}`)
+        }
+        if (lines.length > 0) contextParts.push(`## Market Research\n${lines.join('\n')}`)
     }
+
+    // Branding — extract core identity only (no palette, typography, logos)
     if (venture.context?.branding) {
-        contextParts.push(`Brand Identity:\n${JSON.stringify(venture.context.branding, null, 2)}`)
+        const b = venture.context.branding as Record<string, any>
+        const lines: string[] = []
+        if (b.brandName) lines.push(`Brand name: ${b.brandName}`)
+        if (b.tagline) lines.push(`Tagline: "${b.tagline}"`)
+        if (b.missionStatement) lines.push(`Mission: ${b.missionStatement}`)
+        if (b.brandArchetype) lines.push(`Archetype: ${b.brandArchetype}`)
+        if (lines.length > 0) contextParts.push(`## Brand Identity\n${lines.join('\n')}`)
     }
+
+    // Feasibility — extract verdict, financials, risks, moat
     if (venture.context?.feasibility) {
-        contextParts.push(`Feasibility Analysis:\n${JSON.stringify(venture.context.feasibility, null, 2)}`)
+        const f = venture.context.feasibility as Record<string, any>
+        const lines: string[] = []
+        if (f.verdict) lines.push(`Verdict: ${f.verdict}`)
+        if (f.verdictRationale) lines.push(`Rationale: ${f.verdictRationale}`)
+        if (f.marketTimingScore != null) lines.push(`Market timing score: ${f.marketTimingScore}`)
+        if (f.competitiveMoat) lines.push(`Competitive moat: ${f.competitiveMoat}`)
+        if (Array.isArray(f.keyAssumptions) && f.keyAssumptions.length > 0) {
+            lines.push(`Key assumptions: ${f.keyAssumptions.join('; ')}`)
+        }
+        if (f.financialModel) {
+            lines.push(`Financial model:\n${JSON.stringify(f.financialModel, null, 2)}`)
+        }
+        if (Array.isArray(f.risks) && f.risks.length > 0) {
+            const topRisks = f.risks.slice(0, 5).map((rk: any, i: number) => {
+                const risk = typeof rk === 'object' ? (rk.risk || rk.name || JSON.stringify(rk)) : String(rk)
+                const likelihood = typeof rk === 'object' && rk.likelihood ? ` | likelihood: ${rk.likelihood}` : ''
+                const impact = typeof rk === 'object' && rk.impact ? ` | impact: ${rk.impact}` : ''
+                const mitigation = typeof rk === 'object' && rk.mitigation ? ` | mitigation: ${rk.mitigation}` : ''
+                return `  ${i + 1}. ${risk}${likelihood}${impact}${mitigation}`
+            })
+            lines.push(`Top risks:\n${topRisks.join('\n')}`)
+        }
+        if (lines.length > 0) contextParts.push(`## Feasibility Analysis\n${lines.join('\n')}`)
     }
+
+    // Landing — deployment URL only
     if (venture.context?.landing) {
         const l = venture.context.landing as Record<string, any>
-        const landingSummary: Record<string, any> = {}
-        if (l.deploymentUrl) landingSummary.deploymentUrl = l.deploymentUrl
-        if (l.landingPageCopy?.hero) landingSummary.hero = l.landingPageCopy.hero
-        if (l.landingPageCopy?.pricing) landingSummary.pricing = l.landingPageCopy.pricing
-        contextParts.push(`Landing Page:\n${JSON.stringify(landingSummary, null, 2)}`)
+        if (l.deploymentUrl) {
+            contextParts.push(`## Landing Page\nLive URL: ${l.deploymentUrl}`)
+        }
     }
 
     const isContinuation = history.length > 0
