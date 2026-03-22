@@ -29,7 +29,8 @@
       "Bash(node:*)",
       "Bash(git commit:*)",
       "Bash(find /c/Users/arham/Documents/Github/Forge -name *TimelinePanel* -o -name *timeline*)",
-      "Bash(wc -l /c/Users/arham/Documents/Github/Forge/agents/*.ts)"
+      "Bash(wc -l /c/Users/arham/Documents/Github/Forge/agents/*.ts)",
+      "Bash(find /c/Users/arham/Documents/Github/Forge -type d -name *agent*)"
     ]
   }
 }

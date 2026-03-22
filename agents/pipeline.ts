@@ -353,8 +353,8 @@ You are editing an EXISTING, production-quality landing page. The founder wants 
    - If only pricing tiers change: {"landingPageCopy": {"pricing": [... full replacement array ...]}}
    - Array fields (features, socialProof, pricing, faq) are always replaced entirely when included.
 4. For fullComponent: if the React component code needs to change, output the COMPLETE updated component string — never a partial diff or patch. The component must remain a fully working React functional component with Tailwind CSS.
-5. If the user's change only affects structured copy (headline, CTA text, pricing, FAQ, etc.), do NOT regenerate fullComponent UNLESS the text is hardcoded inside the component rather than using data variables. Check this carefully.
-6. If the user's change requires a visual/structural change to the component (add a section, change layout, modify animations, etc.), you MUST output the full updated fullComponent.
+5. **CRITICAL — Copy-only changes**: If the user's change ONLY affects text content (name, headline, subheadline, CTA text, pricing text, FAQ text, testimonials, feature descriptions, SEO metadata), do NOT output fullComponent at all. Output ONLY the landingPageCopy and/or seoMetadata fields. The system will automatically find-and-replace the old text in the component. This is MUCH faster and preserves the exact design.
+6. ONLY output fullComponent when the user explicitly asks for structural/visual changes (add/remove a section, change layout, modify colors, change animations, restyle elements, add new interactive features). Text/copy changes NEVER require fullComponent.
 7. For seoMetadata: include only the fields that changed (title, description, or keywords).
 8. For sitemap: include only if the site structure actually changes.
 9. Preserve the EXACT brand colors, voice, and design quality of the original page.
@@ -549,6 +549,65 @@ Output the complete PipelineOutput JSON.`
             }
 
             const merged = mergePatch(existingLanding!, validatedPatch)
+
+            // If patch changed copy/SEO but NOT fullComponent, surgically replace text in existing component
+            if (!validatedPatch.fullComponent && (validatedPatch.landingPageCopy || validatedPatch.seoMetadata)) {
+                let updatedComponent = existingLanding!.fullComponent
+                const oldCopy = existingLanding!.landingPageCopy
+                const newCopy = merged.landingPageCopy
+
+                // Replace hero text
+                if (newCopy.hero.headline !== oldCopy.hero.headline)
+                    updatedComponent = updatedComponent.replaceAll(oldCopy.hero.headline, newCopy.hero.headline)
+                if (newCopy.hero.subheadline !== oldCopy.hero.subheadline)
+                    updatedComponent = updatedComponent.replaceAll(oldCopy.hero.subheadline, newCopy.hero.subheadline)
+                if (newCopy.hero.ctaPrimary !== oldCopy.hero.ctaPrimary)
+                    updatedComponent = updatedComponent.replaceAll(oldCopy.hero.ctaPrimary, newCopy.hero.ctaPrimary)
+                if (newCopy.hero.ctaSecondary !== oldCopy.hero.ctaSecondary)
+                    updatedComponent = updatedComponent.replaceAll(oldCopy.hero.ctaSecondary, newCopy.hero.ctaSecondary)
+
+                // Replace feature titles and descriptions
+                if (validatedPatch.landingPageCopy?.features) {
+                    for (let i = 0; i < oldCopy.features.length && i < newCopy.features.length; i++) {
+                        if (oldCopy.features[i].title !== newCopy.features[i].title)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.features[i].title, newCopy.features[i].title)
+                        if (oldCopy.features[i].description !== newCopy.features[i].description)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.features[i].description, newCopy.features[i].description)
+                    }
+                }
+
+                // Replace pricing tier names and prices
+                if (validatedPatch.landingPageCopy?.pricing) {
+                    for (let i = 0; i < oldCopy.pricing.length && i < newCopy.pricing.length; i++) {
+                        if (oldCopy.pricing[i].tier !== newCopy.pricing[i].tier)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.pricing[i].tier, newCopy.pricing[i].tier)
+                        if (oldCopy.pricing[i].price !== newCopy.pricing[i].price)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.pricing[i].price, newCopy.pricing[i].price)
+                        if (oldCopy.pricing[i].cta !== newCopy.pricing[i].cta)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.pricing[i].cta, newCopy.pricing[i].cta)
+                    }
+                }
+
+                // Replace FAQ questions and answers
+                if (validatedPatch.landingPageCopy?.faq) {
+                    for (let i = 0; i < oldCopy.faq.length && i < newCopy.faq.length; i++) {
+                        if (oldCopy.faq[i].question !== newCopy.faq[i].question)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.faq[i].question, newCopy.faq[i].question)
+                        if (oldCopy.faq[i].answer !== newCopy.faq[i].answer)
+                            updatedComponent = updatedComponent.replaceAll(oldCopy.faq[i].answer, newCopy.faq[i].answer)
+                    }
+                }
+
+                // Replace SEO metadata
+                if (validatedPatch.seoMetadata?.title && existingLanding!.seoMetadata?.title)
+                    updatedComponent = updatedComponent.replaceAll(existingLanding!.seoMetadata.title, merged.seoMetadata.title)
+                if (validatedPatch.seoMetadata?.description && existingLanding!.seoMetadata?.description)
+                    updatedComponent = updatedComponent.replaceAll(existingLanding!.seoMetadata.description, merged.seoMetadata.description)
+
+                merged.fullComponent = updatedComponent
+                await onStream('\n[Edit mode] Applied surgical text replacement — no full regeneration needed.\n')
+            }
+
             const validated = PipelineOutputSchema.parse(merged)
 
             validated.fullComponent = resolveLandingComponent({
