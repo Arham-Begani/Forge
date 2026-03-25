@@ -64,10 +64,12 @@ export async function requireAuth(): Promise<Session> {
   return session
 }
 
-// Check if the current user is an admin (set ADMIN_USER_IDS=id1,id2 in env)
+// Check if the current user is an admin
+// Supports ADMIN_USER_IDS (comma-separated UUIDs) and ADMIN_EMAILS (comma-separated emails)
 export function isAdmin(session: Session): boolean {
-  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(s => s.trim()) ?? []
-  return adminIds.includes(session.userId)
+  const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(s => s.trim()).filter(Boolean) ?? []
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) ?? []
+  return adminIds.includes(session.userId) || adminEmails.includes(session.email.toLowerCase())
 }
 
 // Use in admin API routes — returns session or throws AuthError if not admin

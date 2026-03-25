@@ -31,7 +31,8 @@
       "Bash(find /c/Users/arham/Documents/Github/Forze -name *TimelinePanel* -o -name *timeline*)",
       "Bash(wc -l /c/Users/arham/Documents/Github/Forze/agents/*.ts)",
       "Bash(find /c/Users/arham/Documents/Github/Forze -type d -name *agent*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(\"C:/Users/arham/Documents/Github/Forge/.env.local\")"
     ]
   }
 }
