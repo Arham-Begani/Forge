@@ -8,6 +8,12 @@ export interface Session {
   name: string
 }
 
+const FALLBACK_ADMIN_EMAILS = ['arhambegani2@gmail.com']
+
+function normalizeEmail(email: string | null | undefined): string {
+  return (email ?? '').trim().toLowerCase()
+}
+
 // Custom error for auth failures — avoids instanceof issues with NextResponse across modules
 export class AuthError extends Error {
   constructor() {
@@ -68,8 +74,14 @@ export async function requireAuth(): Promise<Session> {
 // Supports ADMIN_USER_IDS (comma-separated UUIDs) and ADMIN_EMAILS (comma-separated emails)
 export function isAdmin(session: Session): boolean {
   const adminIds = process.env.ADMIN_USER_IDS?.split(',').map(s => s.trim()).filter(Boolean) ?? []
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) ?? []
-  return adminIds.includes(session.userId) || adminEmails.includes(session.email.toLowerCase())
+  const adminEmails = [
+    ...(process.env.ADMIN_EMAILS?.split(',') ?? []),
+    ...FALLBACK_ADMIN_EMAILS,
+  ]
+    .map(normalizeEmail)
+    .filter(Boolean)
+
+  return adminIds.includes(session.userId) || adminEmails.includes(normalizeEmail(session.email))
 }
 
 // Use in admin API routes — returns session or throws AuthError if not admin
