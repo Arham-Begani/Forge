@@ -300,7 +300,7 @@ export function Hero() {
             color: 'var(--muted)',
             fontFamily: 'var(--font-dm-sans), sans-serif',
           }}>
-            Join <strong style={{ color: 'var(--text-soft)' }}>500+ founders</strong> already building
+            Join <strong style={{ color: 'var(--text-soft)' }}>20+ founders</strong> already building
           </span>
         </div>
 
