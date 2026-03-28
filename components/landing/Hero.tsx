@@ -7,7 +7,7 @@ const CYCLING_PHRASES = [
   'a Research Team',
   'a Brand Studio',
   'a GTM Engine',
-  'a Silicon Workforce',
+  'a Your Startup Workforce',
 ]
 
 const STREAM_LINES = [

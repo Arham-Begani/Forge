@@ -67,7 +67,7 @@ This file is the Agent's memory between sessions.
 
 ### Phase 6 — Agents
 - [x] `lib/gemini.ts` — Gemini SDK wrapper
-- [x] All 7 Silicon Workforce agents built and tested
+- [x] All 7 Your Startup Workforce agents built and tested
 
 ### Phase 7 — Wire Agents to API
 - [x] `/run` route calls correct agent per moduleId
@@ -94,7 +94,7 @@ This file is the Agent's memory between sessions.
 ## Daily Log
 
 ### Day 1 — March 10, 2026
-**Goal:** Implement Silicon Workforce foundation, agents, and UI Shell.
+**Goal:** Implement Your Startup Workforce foundation, agents, and UI Shell.
 **Built:** 
 - Orchestrated full Agent Team architecture.
 - Implemented `/run` and `/stream` SSE endpoints.

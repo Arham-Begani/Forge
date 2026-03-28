@@ -4,7 +4,7 @@
 
 Forze is an Autonomous Venture Orchestrator that bridges the Execution Gap for non-technical founders. It replaces the traditional 3-month startup launch cycle with a 5-minute Agentic Loop — a coordinated swarm of specialized AI agents that collaborate to transform a raw concept into a production-ready, market-validated business.
 
-Forze is not a chatbot. It is not a wrapper. It is a Silicon Workforce.
+Forze is not a chatbot. It is not a wrapper. It is a Your Startup Workforce.
 
 ---
 

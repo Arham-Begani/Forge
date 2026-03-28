@@ -1,7 +1,7 @@
 # Forze — Claude Code Rules
 
 ## What Forze Is
-An Autonomous Venture Orchestrator. A coordinated swarm of AI agents that transforms a raw business concept into a production-ready, market-validated venture in minutes. Not a chatbot. Not a wrapper. A Silicon Workforce.
+An Autonomous Venture Orchestrator. A coordinated swarm of AI agents that transforms a raw business concept into a production-ready, market-validated venture in minutes. Not a chatbot. Not a wrapper. A Your Startup Workforce.
 
 Read PRD.md for the full product vision before starting any task.
 

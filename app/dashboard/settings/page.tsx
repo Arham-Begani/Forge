@@ -965,7 +965,7 @@ export default function SettingsPage() {
               clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
             }} />
             <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 500 }}>
-              Forze v2 — Silicon Workforce
+              Forze v2 — Your Startup Workforce
             </span>
           </motion.div>
         </div>

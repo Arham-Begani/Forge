@@ -6,7 +6,7 @@ const FEATURED = {
   icon: '⬡',
   accent: '#C4975A',
   title: 'Full Launch',
-  tagline: 'The Silicon Workforce in one command',
+  tagline: 'Your Startup Workforce in one command',
   description: 'Runs Research, Branding, Landing Page, and Feasibility as a coordinated Agent Team. All outputs share context — brand voice matches research positioning, landing page uses branding colors, feasibility cites the research data.',
   subAgents: [
     { icon: '◎', label: 'Genesis Engine', accent: '#5A8C6E' },
@@ -122,7 +122,7 @@ export function AgentGrid() {
           margin: '0 0 16px',
           letterSpacing: '-0.02em',
         }}>
-          Your Silicon Workforce
+          Your Startup Workforce
         </h2>
         <p style={{
           fontFamily: 'var(--font-dm-sans), sans-serif',

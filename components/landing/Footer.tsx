@@ -68,7 +68,7 @@ export function Footer() {
               margin: 0,
               maxWidth: '260px',
             }}>
-              Your Silicon Workforce. Transform a raw idea into a market-validated venture in under 5 minutes.
+              Your Startup Workforce. Transform a raw idea into a market-validated venture in under 5 minutes.
             </p>
             {/* Social links */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>

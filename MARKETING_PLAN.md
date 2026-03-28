@@ -6,7 +6,7 @@
 
 ## Core Narrative (Use Everywhere)
 
-> "What used to take a founding team 6 weeks — market research, branding, landing page, feasibility study, content strategy — Forze does in under 10 minutes. This is what a Silicon Workforce looks like."
+> "What used to take a founding team 6 weeks — market research, branding, landing page, feasibility study, content strategy — Forze does in under 10 minutes. This is what a Your Startup Workforce looks like."
 
 **Pain point**: Founders waste months validating ideas manually. They hire expensive consultants, get outdated research, and ship landing pages that convert at 1%.
 
@@ -118,7 +118,7 @@
 
 **LinkedIn:**
 - Case study post: Full breakdown of one idea from raw concept to complete output package.
-- *"Why I stopped calling it an AI tool and started calling it a Silicon Workforce"* — positioning piece.
+- *"Why I stopped calling it an AI tool and started calling it a Your Startup Workforce"* — positioning piece.
 - Video post: 60-second screen recording of Forze running. LinkedIn autoplay gets 3x more views.
 - Reach out directly to 20 founders in your network. Personalized 2-line note with a link.
 

@@ -153,7 +153,7 @@ export function LoadingScreen({ onComplete, minimumDuration = 800 }: LoadingScre
               margin: 0,
             }}
           >
-            Initializing Silicon Workforce
+            Initializing Your Startup Workforce
           </motion.p>
         </motion.div>
       )}
