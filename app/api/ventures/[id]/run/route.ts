@@ -105,10 +105,21 @@ async function runAgent(
         finalPrompt = "Continue from where you left off. Do not repeat anything already outputted. Complete the JSON object strictly."
     }
 
+    // Build globalIdea: raw idea + any uploaded source documents
+    let globalIdea = project?.global_idea ?? undefined
+    const sourceDocs = (project?.source_documents ?? []) as Array<{ name: string; content: string }>
+    if (sourceDocs.length > 0) {
+        const docBlock = sourceDocs.map(d =>
+            `--- Document: ${d.name} ---\n${d.content}`
+        ).join('\n\n')
+        globalIdea = (globalIdea ? globalIdea + '\n\n' : '') +
+            `=== Uploaded Reference Documents ===\n${docBlock}`
+    }
+
     const ventureInput = {
         ventureId: venture.id,
         name: isContinuation ? `${venture.name} (Continuing...)` : `${venture.name}: ${prompt}${decisionsContext}`,
-        globalIdea: project?.global_idea ?? undefined,
+        globalIdea,
         context: venture.context as unknown as Record<string, unknown>,
     }
 
