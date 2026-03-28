@@ -68,7 +68,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 18, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))', gap: 18, marginBottom: 28 }}>
           {PLAN_SEQUENCE.map((slug) => {
             const plan = BILLING_PLANS[slug]
             return (
@@ -141,7 +141,7 @@ export default function PricingPage() {
 
         <section className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Top-ups</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14 }}>
             {TOPUP_SEQUENCE.map((slug) => {
               const topup = TOPUP_PRODUCTS[slug]
               return (
@@ -162,7 +162,7 @@ export default function PricingPage() {
 
         <section className="glass-card" style={{ padding: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Credit cost per module</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 10 }}>
             {Object.entries(MODULE_CREDIT_COSTS).map(([moduleId, cost]) => (
               <div
                 key={moduleId}
