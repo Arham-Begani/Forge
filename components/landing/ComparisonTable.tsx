@@ -80,6 +80,7 @@ function Cell({ value, isForze, animDelay }: { value: CellValue; isForze?: boole
 export function ComparisonTable() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -89,6 +90,123 @@ export function ComparisonTable() {
     if (sectionRef.current) obs.observe(sectionRef.current)
     return () => obs.disconnect()
   }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Mobile: card-based layout
+  if (isMobile) {
+    const COLS = [
+      { label: 'Freelancers', key: 'freelancers' as const },
+      { label: 'AI Chatbots', key: 'chatbots' as const },
+      { label: 'Other Tools', key: 'tools' as const },
+    ]
+    return (
+      <section id="compare" ref={sectionRef} style={{
+        padding: 'clamp(48px, 8vw, 112px) 16px',
+        maxWidth: '1000px',
+        margin: '0 auto',
+      }}>
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '36px',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(24px)',
+          transition: 'opacity 0.6s ease, transform 0.6s ease',
+        }}>
+          <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--accent)', textTransform: 'uppercase', margin: '0 0 12px' }}>
+            Why Forze
+          </p>
+          <h2 style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 'clamp(24px, 6vw, 44px)', fontWeight: 800, color: 'var(--text)', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
+            Everything else is a fragment.
+          </h2>
+          <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '15px', color: 'var(--text-soft)', margin: '0 auto', lineHeight: 1.6 }}>
+            Forze is the whole picture.
+          </p>
+        </div>
+
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: '12px',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(24px)',
+          transition: 'opacity 0.6s 0.15s ease, transform 0.6s 0.15s ease',
+        }}>
+          {ROWS.map((row, i) => (
+            <div key={i} style={{
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)',
+              background: 'var(--glass-bg)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
+                  {row.feature}
+                </span>
+                <Cell value={row.forze} isForze animDelay={`${0.1 + i * 0.06}s`} />
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {COLS.map(col => (
+                  <div key={col.key} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '4px 10px', borderRadius: '999px',
+                    background: 'var(--sidebar)', fontSize: '11px',
+                    fontFamily: 'var(--font-dm-sans), sans-serif',
+                    color: 'var(--muted)',
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{col.label}:</span>
+                    {row[col.key] === true ? <span style={{ color: '#22c55e' }}>✓</span> :
+                     row[col.key] === false ? <span>—</span> :
+                     <span>{row[col.key] as string}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Meta cards */}
+          {META.map(row => (
+            <div key={row.key} style={{
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)',
+              background: 'var(--sidebar)',
+              padding: '16px',
+            }}>
+              <div style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+                {row.label}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '11px', color: 'var(--muted)' }}>Forze</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono), monospace', fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{row.forze}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Freelancers', val: row.freelancers },
+                  { label: 'AI Chatbots', val: row.chatbots },
+                  { label: 'Other Tools', val: row.tools },
+                ].map(item => (
+                  <span key={item.label} style={{
+                    padding: '3px 8px', borderRadius: '999px',
+                    background: 'var(--bg)', fontSize: '11px',
+                    fontFamily: 'var(--font-dm-sans), sans-serif',
+                    color: 'var(--muted)',
+                  }}>
+                    {item.label}: {item.val}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section id="compare" ref={sectionRef} style={{
