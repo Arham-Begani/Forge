@@ -20,6 +20,12 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 500): Pro
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface SourceDocument {
+  name: string
+  content: string
+  type: string
+}
+
 export interface Project {
   id: string
   user_id: string
@@ -28,6 +34,7 @@ export interface Project {
   icon: string
   status: 'active' | 'archived'
   global_idea: string | null
+  source_documents: SourceDocument[]
   created_at: string
   updated_at: string
 }
