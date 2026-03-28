@@ -5,6 +5,7 @@ import {
     getVenture,
     createInvestorKit,
     getInvestorKitByVenture,
+    updateInvestorKit,
     getProject,
 } from '@/lib/queries'
 import { runInvestorKitAgent } from '@/agents/investor-kit'
@@ -39,7 +40,14 @@ export async function GET(
             return NextResponse.json({ kit: null })
         }
 
-        return NextResponse.json({ kit })
+        return NextResponse.json({
+            kit,
+            meta: {
+                has_manual_edits: kit.has_manual_edits ?? false,
+                last_edited_at: kit.last_edited_at ?? null,
+                source: kit.has_manual_edits ? 'manual' : 'ai',
+            },
+        })
     } catch (e) {
         if (isAuthError(e)) return (e as any).toResponse()
         // Table may not exist yet — return null gracefully
@@ -99,6 +107,43 @@ export async function POST(
             return NextResponse.json({ error: 'Agent failed to produce output' }, { status: 500 })
         }
 
+        // ── AI/manual merge policy ──
+        // If an existing kit has manual edits, preserve manually-edited fields
+        const existingKit = await getInvestorKitByVenture(id)
+        let mergeInfo: { preservedManualFields: string[]; updatedAIFields: string[] } | null = null
+
+        if (existingKit?.has_manual_edits && existingKit.kit_data) {
+            const old = existingKit.kit_data as Record<string, unknown>
+            const topFields = ['executiveSummary', 'pitchDeckOutline', 'onePageMemo', 'askDetails', 'dataRoomSections']
+            const preserved: string[] = []
+            const updated: string[] = []
+
+            // Compare each top-level field: if it differs from original AI output, it was manually edited — preserve it
+            for (const field of topFields) {
+                const oldVal = JSON.stringify(old[field] ?? '')
+                const newVal = JSON.stringify((kitData as any)[field] ?? '')
+                // Field was changed by user if old differs from what AI would have generated
+                // Since we don't store original AI output separately, we treat any existing field
+                // in a has_manual_edits kit as potentially edited — preserve it, let AI fill only missing
+                if (old[field] !== undefined && old[field] !== null) {
+                    // Preserve the manually-edited version
+                    ;(kitData as any)[field] = old[field]
+                    preserved.push(field)
+                } else {
+                    updated.push(field)
+                }
+            }
+
+            mergeInfo = { preservedManualFields: preserved, updatedAIFields: updated }
+
+            // Update existing kit with merged data instead of creating new
+            const updatedKit = await updateInvestorKit(existingKit.id, session.userId, kitData)
+            return NextResponse.json({
+                kit: updatedKit,
+                merge: mergeInfo,
+            }, { status: 200 })
+        }
+
         const accessCode = generateAccessCode()
         const kit = await createInvestorKit(id, session.userId, accessCode, kitData)
 
@@ -115,5 +160,45 @@ export async function POST(
             )
         }
         return NextResponse.json({ error: 'Failed to generate investor kit' }, { status: 500 })
+    }
+}
+
+// PATCH — update specific fields of an existing investor kit (manual edits)
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await requireAuth()
+        const { id } = await params
+
+        const venture = await getVenture(id, session.userId)
+        if (!venture) {
+            return NextResponse.json({ error: 'Venture not found' }, { status: 404 })
+        }
+
+        const billing = await getBillingSnapshot(session.userId)
+        if (!billing.allowedModules.includes('investor-kit')) {
+            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
+        }
+
+        const kit = await getInvestorKitByVenture(id)
+        if (!kit) {
+            return NextResponse.json({ error: 'No investor kit found for this venture' }, { status: 404 })
+        }
+
+        const body = await request.json()
+        const { patch } = body as { patch: Record<string, unknown> }
+
+        if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) {
+            return NextResponse.json({ error: 'Patch object is required and must be non-empty' }, { status: 400 })
+        }
+
+        const updated = await updateInvestorKit(kit.id, session.userId, patch)
+        return NextResponse.json({ kit: updated })
+    } catch (e) {
+        if (isAuthError(e)) return (e as any).toResponse()
+        console.error('Investor kit PATCH error:', (e as Error)?.message)
+        return NextResponse.json({ error: 'Failed to update investor kit' }, { status: 500 })
     }
 }
