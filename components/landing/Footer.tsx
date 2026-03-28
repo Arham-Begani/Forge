@@ -184,6 +184,13 @@ export function Footer() {
         @media (max-width: 768px) {
           footer > div > div:first-child {
             grid-template-columns: 1fr 1fr !important;
+            gap: 28px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          footer > div > div:first-child {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
           }
         }
       `}</style>
