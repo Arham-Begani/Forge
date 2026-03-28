@@ -468,6 +468,8 @@ export interface InvestorKit {
   kit_data: Record<string, unknown>
   is_active: boolean
   views: number
+  has_manual_edits: boolean
+  last_edited_at: string | null
   created_at: string
 }
 
@@ -545,6 +547,43 @@ export async function incrementKitViews(kitId: string): Promise<void> {
     .eq('id', kitId)
 
   if (writeError) console.error('incrementKitViews failed:', writeError.message)
+}
+
+export async function updateInvestorKit(
+  kitId: string,
+  userId: string,
+  patch: Record<string, unknown>
+): Promise<InvestorKit> {
+  return withRetry(async () => {
+    const db = await createDb()
+
+    // Fetch current kit to merge patch into existing kit_data
+    const { data: existing, error: fetchError } = await db
+      .from('investor_kits')
+      .select('*')
+      .eq('id', kitId)
+      .eq('user_id', userId)
+      .single()
+
+    if (fetchError || !existing) throw new Error(`Kit not found: ${fetchError?.message}`)
+
+    const mergedData = { ...existing.kit_data, ...patch }
+
+    const { data, error } = await db
+      .from('investor_kits')
+      .update({
+        kit_data: mergedData,
+        has_manual_edits: true,
+        last_edited_at: new Date().toISOString(),
+      })
+      .eq('id', kitId)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (error) throw new Error(`updateInvestorKit failed: ${error.message}`)
+    return data
+  })
 }
 
 // ─── Cohorts ──────────────────────────────────────────────────────────────────
