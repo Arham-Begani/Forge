@@ -132,9 +132,6 @@ export async function POST(request: NextRequest) {
       if (snapshot.hasUnlimitedAccess) {
         return NextResponse.json({ error: 'Unlimited owner access does not require top-ups' }, { status: 403 })
       }
-      if (snapshot.planSlug === 'free') {
-        return NextResponse.json({ error: 'Top-ups require an active paid plan' }, { status: 403 })
-      }
 
       const topup = TOPUP_PRODUCTS[payload.topupSlug]
       const order = await createRazorpayOrder({

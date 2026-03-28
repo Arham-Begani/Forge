@@ -31,9 +31,6 @@ export async function GET(
         }
 
         const billing = await getBillingSnapshot(session.userId)
-        if (!billing.allowedModules.includes('investor-kit')) {
-            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
-        }
 
         const kit = await getInvestorKitByVenture(id)
         if (!kit) {
@@ -71,9 +68,6 @@ export async function POST(
         }
 
         const billing = await getBillingSnapshot(session.userId)
-        if (!billing.allowedModules.includes('investor-kit')) {
-            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
-        }
 
         const ctx = venture.context as any
         if (!ctx?.research && !ctx?.feasibility) {
@@ -178,9 +172,6 @@ export async function PATCH(
         }
 
         const billing = await getBillingSnapshot(session.userId)
-        if (!billing.allowedModules.includes('investor-kit')) {
-            return NextResponse.json({ error: 'Investor Kit is available on Pro and Studio plans' }, { status: 403 })
-        }
 
         const kit = await getInvestorKitByVenture(id)
         if (!kit) {

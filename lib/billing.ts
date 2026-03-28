@@ -81,15 +81,6 @@ export const MODULE_CREDIT_COSTS: Record<BillingModuleId, number> = {
   'full-launch': 30,
 }
 
-const FREE_MODULES: BillingModuleId[] = ['general', 'research']
-const STARTER_MODULES: BillingModuleId[] = [
-  'general',
-  'research',
-  'branding',
-  'marketing',
-  'mvp-scalpel',
-]
-
 export const BILLING_PLANS: Record<PlanSlug, BillingPlan> = {
   free: {
     slug: 'free',
@@ -97,8 +88,8 @@ export const BILLING_PLANS: Record<PlanSlug, BillingPlan> = {
     monthlyPriceInr: 0,
     yearlyPriceInr: 0,
     ventureLimit: 1,
-    monthlyCredits: 15,
-    allowedModules: FREE_MODULES,
+    monthlyCredits: 30,
+    allowedModules: ALL_BILLING_MODULES,
     cta: 'Start free',
   },
   starter: {
@@ -108,7 +99,7 @@ export const BILLING_PLANS: Record<PlanSlug, BillingPlan> = {
     yearlyPriceInr: 2990,
     ventureLimit: 2,
     monthlyCredits: 40,
-    allowedModules: STARTER_MODULES,
+    allowedModules: ALL_BILLING_MODULES,
     cta: 'Get Started',
   },
   builder: {

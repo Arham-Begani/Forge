@@ -530,13 +530,10 @@ async function grantFreeCreditsIfNeeded(userId: string, db: DbClient): Promise<v
 
 export async function assertCanRunModule(userId: string, moduleId: BillingModuleId, db?: DbClient) {
   const snapshot = await getBillingSnapshot(userId, db)
-  if (!snapshot.allowedModules.includes(moduleId)) {
-    throw new BillingError(`${BILLING_PLANS[snapshot.planSlug].label} plan does not include ${moduleId}`, 403, 'module_locked')
-  }
 
   const requiredCredits = getModuleCost(moduleId)
   if (!snapshot.hasUnlimitedAccess && snapshot.creditsRemaining < requiredCredits) {
-    throw new BillingError(`You need ${requiredCredits} credits to run this module`, 402, 'insufficient_credits')
+    throw new BillingError(`You need ${requiredCredits} credits to run this module — buy a top-up or upgrade your plan`, 402, 'insufficient_credits')
   }
 
   return { snapshot, requiredCredits }
@@ -544,15 +541,6 @@ export async function assertCanRunModule(userId: string, moduleId: BillingModule
 
 export async function assertCanAccessMarketingAutomation(userId: string, db?: DbClient): Promise<BillingSnapshot> {
   const snapshot = await getBillingSnapshot(userId, db)
-  if (snapshot.hasUnlimitedAccess) return snapshot
-
-  const currentPlanIndex = PLAN_SEQUENCE.indexOf(snapshot.planSlug)
-  const minimumPlanIndex = PLAN_SEQUENCE.indexOf('builder')
-
-  if (currentPlanIndex === -1 || currentPlanIndex < minimumPlanIndex) {
-    throw new BillingError('Connected channels are available on Builder and higher plans', 403, 'marketing_automation_locked')
-  }
-
   return snapshot
 }
 
