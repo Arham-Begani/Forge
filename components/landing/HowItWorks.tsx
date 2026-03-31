@@ -97,6 +97,32 @@ export function HowItWorks() {
         gap: '24px',
         position: 'relative',
       }}>
+        {/* Ambient glow blob */}
+        <div style={{
+          position: 'absolute',
+          top: '-60px',
+          right: '-80px',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, hsla(28,62%,42%,0.08) 0%, transparent 70%)',
+          animation: 'blob-float 12s ease-in-out infinite',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }} />
+        {/* Connecting line (md+ only) */}
+        <div className="how-it-works-line" style={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(to right, transparent, hsla(28,62%,42%,0.25), transparent)',
+          zIndex: -1,
+          opacity: visible ? 1 : 0,
+          transition: 'opacity 0.8s 0.5s ease',
+          pointerEvents: 'none',
+        }} />
         {STEPS.map((step, i) => (
           <div
             key={i}
@@ -152,7 +178,9 @@ export function HowItWorks() {
                 justifyContent: 'center',
                 fontSize: '22px',
                 color: step.accent,
-                animation: visible ? `badge-pop 0.5s ${0.2 + i * 0.12}s ease both` : 'none',
+                animation: visible
+                  ? `badge-pop 0.5s ${0.2 + i * 0.12}s ease both, float ${3 + i * 0.5}s ease-in-out ${0.4 + i * 0.12}s infinite`
+                  : 'none',
               }}>
                 {step.icon}
               </div>
@@ -161,9 +189,10 @@ export function HowItWorks() {
             {/* Accent line */}
             <div style={{
               height: '2px',
-              width: '40px',
+              width: visible ? '40px' : '0px',
               borderRadius: '1px',
               background: `linear-gradient(to right, ${step.accent}, transparent)`,
+              transition: `width 0.6s ${0.3 + i * 0.12}s ease`,
             }} />
 
             {/* Content */}

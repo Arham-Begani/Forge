@@ -6,6 +6,7 @@ import { ReportModal } from "./ReportModal";
 import { MoveUpRight, FileText, Pencil } from "lucide-react";
 import { useParams } from "next/navigation";
 import { downloadPDFFromResult } from "@/lib/client-pdf";
+import { SurgicalEditPopover } from "./SurgicalEditPopover";
 
 export type ModuleId =
   | "research"
@@ -25,6 +26,9 @@ interface ResultCardProps {
   result: Record<string, any>;
   deploymentUrl?: string;
   onModalChange?: (open: boolean) => void;
+  ventureId?: string;
+  conversationId?: string;
+  onResultUpdate?: (updatedResult: Record<string, any>) => void;
 }
 
 const MODULE_ACCENTS: Record<ModuleId, string> = {
@@ -85,21 +89,44 @@ function ActionButton({ label, icon, onClick }: { label: string; icon?: React.Re
   );
 }
 
-export const ResultCard = React.memo(function ResultCard({ moduleId, result, deploymentUrl, onModalChange }: ResultCardProps) {
+export const ResultCard = React.memo(function ResultCard({ moduleId, result, deploymentUrl, onModalChange, ventureId, conversationId, onResultUpdate }: ResultCardProps) {
   const accent = MODULE_ACCENTS[moduleId] || "#666";
   const label = MODULE_LABELS[moduleId] || "Analysis";
   const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const [expanded, setExpanded] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState({ title: "", content: "" });
+  const [modalContent, setModalContent] = useState({ title: "", content: "", fieldPath: [] as string[] });
   const [mounted, setMounted] = useState(false);
+
+  // Surgical edit handler — calls API and propagates updated result
+  const makeSurgicalEdit = React.useCallback(
+    async (path: string[], oldText: string, newText: string) => {
+      if (!ventureId || !conversationId) {
+        throw new Error("Edit not available");
+      }
+      const res = await fetch(`/api/ventures/${ventureId}/surgical-edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId, path, oldText, newText }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save");
+      }
+      const { result: updatedResult } = await res.json();
+      onResultUpdate?.(updatedResult);
+    },
+    [ventureId, conversationId, onResultUpdate]
+  );
+
+  const canEdit = !!(ventureId && conversationId);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const openReport = (title: string, content: string) => {
-    setModalContent({ title, content });
+  const openReport = (title: string, content: string, fieldPath?: string[]) => {
+    setModalContent({ title, content, fieldPath: fieldPath || [] });
     setModalOpen(true);
     onModalChange?.(true);
   };
@@ -216,11 +243,11 @@ export const ResultCard = React.memo(function ResultCard({ moduleId, result, dep
                 {/* Divider */}
                 <div style={{ height: 1, background: "var(--border)", marginBottom: 4 }} />
 
-                {moduleId === "research" && <ResearchDisplay result={result} onOpenReport={(c) => openReport("Market Research Assessment", c)} />}
-                {moduleId === "branding" && <BrandingDisplay result={result} onOpenReport={(c) => openReport("Brand Identity Bible", c)} />}
-                {moduleId === "marketing" && <MarketingDisplay result={result} onOpenReport={(c) => openReport("Go-To-Market Strategy", c)} />}
+                {moduleId === "research" && <ResearchDisplay result={result} onOpenReport={(c) => openReport("Market Research Assessment", c, ["researchPaper"])} onSurgicalEdit={canEdit ? makeSurgicalEdit : undefined} />}
+                {moduleId === "branding" && <BrandingDisplay result={result} onOpenReport={(c) => openReport("Brand Identity Bible", c, ["brandBible"])} onSurgicalEdit={canEdit ? makeSurgicalEdit : undefined} />}
+                {moduleId === "marketing" && <MarketingDisplay result={result} onOpenReport={(c) => openReport("Go-To-Market Strategy", c, ["marketingPlan"])} onSurgicalEdit={canEdit ? makeSurgicalEdit : undefined} />}
                 {moduleId === "landing" && <LandingDisplay result={result} externalUrl={deploymentUrl} />}
-                {moduleId === "feasibility" && <FeasibilityDisplay result={result} onOpenReport={(c) => openReport("Strategic Feasibility Report", c)} />}
+                {moduleId === "feasibility" && <FeasibilityDisplay result={result} onOpenReport={(c) => openReport("Strategic Feasibility Report", c, ["feasibilityReport"])} onSurgicalEdit={canEdit ? makeSurgicalEdit : undefined} />}
                 {moduleId === "full-launch" && (
                   <FullLaunchDisplay
                     result={result}
@@ -314,6 +341,9 @@ export const ResultCard = React.memo(function ResultCard({ moduleId, result, dep
         title={modalContent.title}
         content={modalContent.content}
         accentColor={accent}
+        onSurgicalEdit={canEdit && modalContent.fieldPath.length > 0 ? async (oldText, newText) => {
+          await makeSurgicalEdit(modalContent.fieldPath, oldText, newText);
+        } : undefined}
       />
     </>
   );
@@ -407,7 +437,7 @@ function parseMagnitudeValue(val: any): number {
   return base;
 }
 
-function ResearchDisplay({ result, onOpenReport }: { result: Record<string, any>; onOpenReport: (content: string) => void }) {
+function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Record<string, any>; onOpenReport: (content: string) => void; onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void> }) {
   const ACCENT = "#5A8C6E";
   const tamVal = result.research?.tam?.value ?? result.tam?.value ?? result.tam;
   const samVal = result.research?.sam?.value ?? result.sam?.value ?? result.sam;
@@ -439,17 +469,18 @@ function ResearchDisplay({ result, onOpenReport }: { result: Record<string, any>
     <>
       <DecisionLayer
         accent={ACCENT}
+        onSurgicalEdit={onSurgicalEdit}
         items={[
-          { label: "Best Customer Segment", value: result.bestCustomerSegment },
-          { label: "Best Wedge", value: result.bestWedge },
-          { label: "Best Channels", value: result.bestChannels },
-          { label: "Biggest Trap", value: result.biggestTrap },
-          { label: "Recommended Next Step", value: result.recommendedNextStep },
+          { label: "Best Customer Segment", value: result.bestCustomerSegment, editPath: ["bestCustomerSegment"] },
+          { label: "Best Wedge", value: result.bestWedge, editPath: ["bestWedge"] },
+          { label: "Best Channels", value: result.bestChannels, editPath: ["bestChannels"] },
+          { label: "Biggest Trap", value: result.biggestTrap, editPath: ["biggestTrap"] },
+          { label: "Recommended Next Step", value: result.recommendedNextStep, editPath: ["recommendedNextStep"] },
         ]}
       />
-      <Row label="Market Summary" value={result.marketSummary} />
+      <Row label="Market Summary" value={result.marketSummary} onSurgicalEdit={onSurgicalEdit} editPath={["marketSummary"]} accent={ACCENT} />
       <Row label="TAM" value={stringTam} />
-      <Row label="Recommended Concept" value={result.recommendedConcept} />
+      <Row label="Recommended Concept" value={result.recommendedConcept} onSurgicalEdit={onSurgicalEdit} editPath={["recommendedConcept"]} accent={ACCENT} />
 
       {/* ── Premium Market Sizing Chart ── */}
       <motion.div
@@ -551,23 +582,24 @@ function ResearchDisplay({ result, onOpenReport }: { result: Record<string, any>
   );
 }
 
-function BrandingDisplay({ result, onOpenReport }: { result: Record<string, any>; onOpenReport: (content: string) => void }) {
+function BrandingDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Record<string, any>; onOpenReport: (content: string) => void; onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void> }) {
   const colors = Array.isArray(result.colorPalette) ? result.colorPalette : [];
   const brandBible = result.branding?.brandBible || result.brandBible;
   return (
     <>
       <DecisionLayer
         accent="#5A6E8C"
+        onSurgicalEdit={onSurgicalEdit}
         items={[
-          { label: "Buyer Fit", value: result.buyerFitRationale },
-          { label: "Conversion Risks", value: result.conversionRisks },
-          { label: "Recommended Direction", value: result.recommendedBrandDirection },
+          { label: "Buyer Fit", value: result.buyerFitRationale, editPath: ["buyerFitRationale"] },
+          { label: "Conversion Risks", value: result.conversionRisks, editPath: ["conversionRisks"] },
+          { label: "Recommended Direction", value: result.recommendedBrandDirection, editPath: ["recommendedBrandDirection"] },
         ]}
       />
       <AlignmentWarnings warnings={result.alignmentWarnings} />
-      <Row label="Brand Name" value={result.brandName} highlight />
-      <Row label="Tagline" value={result.tagline} />
-      <Row label="Archetype" value={result.brandArchetype} />
+      <Row label="Brand Name" value={result.brandName} highlight onSurgicalEdit={onSurgicalEdit} editPath={["brandName"]} accent="#5A6E8C" />
+      <Row label="Tagline" value={result.tagline} onSurgicalEdit={onSurgicalEdit} editPath={["tagline"]} accent="#5A6E8C" />
+      <Row label="Archetype" value={result.brandArchetype} onSurgicalEdit={onSurgicalEdit} editPath={["brandArchetype"]} accent="#5A6E8C" />
       {brandBible && (
         <button
           onClick={() => onOpenReport(brandBible)}
@@ -607,7 +639,7 @@ function BrandingDisplay({ result, onOpenReport }: { result: Record<string, any>
   );
 }
 
-function MarketingDisplay({ result, onOpenReport }: { result: Record<string, any>; onOpenReport: (content: string) => void }) {
+function MarketingDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Record<string, any>; onOpenReport: (content: string) => void; onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void> }) {
   const socialCount = result.socialCalendar?.length ?? result.totalPostsCount ?? 0;
   const blogCount = result.seoOutlines?.length ?? 0;
   const marketingPlan = result.marketingPlan || result.gtmStrategy?.marketingPlan;
@@ -615,13 +647,14 @@ function MarketingDisplay({ result, onOpenReport }: { result: Record<string, any
     <>
       <DecisionLayer
         accent="#8C5A7A"
+        onSurgicalEdit={onSurgicalEdit}
         items={[
-          { label: "Recommended First Motion", value: result.recommendedFirstMotion },
+          { label: "Recommended First Motion", value: result.recommendedFirstMotion, editPath: ["recommendedFirstMotion"] },
           { label: "Priority Channels", value: Array.isArray(result.priorityChannels) ? result.priorityChannels.map((c: any) => c.channel).join(" · ") : undefined },
         ]}
       />
       <AlignmentWarnings warnings={result.alignmentWarnings} />
-      <Row label="Strategy" value={result.gtmStrategy?.overview ?? result.theme} />
+      <Row label="Strategy" value={result.gtmStrategy?.overview ?? result.theme} onSurgicalEdit={onSurgicalEdit} editPath={result.gtmStrategy?.overview ? ["gtmStrategy", "overview"] : ["theme"]} accent="#8C5A7A" />
       <Row label="Assets" value={`${socialCount} posts, ${blogCount} SEO articles`} />
       {marketingPlan && (
         <button
@@ -671,7 +704,7 @@ function LandingDisplay({ result, externalUrl }: { result: Record<string, any>; 
   );
 }
 
-function FeasibilityDisplay({ result, onOpenReport }: { result: Record<string, any>; onOpenReport: (content: string) => void }) {
+function FeasibilityDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Record<string, any>; onOpenReport: (content: string) => void; onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void> }) {
   const [showChart, setShowChart] = useState(false);
   const ACCENT = "#7A5A8C";
   const ACCENT_MUTED = "#5A8C6E";
@@ -720,11 +753,12 @@ function FeasibilityDisplay({ result, onOpenReport }: { result: Record<string, a
       {/* Decision Layer */}
       <DecisionLayer
         accent={ACCENT}
+        onSurgicalEdit={onSurgicalEdit}
         items={[
-          { label: "Most Dangerous Assumption", value: result.mostDangerousAssumption },
-          { label: "Real Blockers", value: result.realBlockers },
-          { label: "Evidence to Flip Verdict", value: result.evidenceNeededToFlipVerdict },
-          { label: "Go-Forward Motion", value: result.recommendedGoForwardMotion },
+          { label: "Most Dangerous Assumption", value: result.mostDangerousAssumption, editPath: ["mostDangerousAssumption"] },
+          { label: "Real Blockers", value: result.realBlockers, editPath: ["realBlockers"] },
+          { label: "Evidence to Flip Verdict", value: result.evidenceNeededToFlipVerdict, editPath: ["evidenceNeededToFlipVerdict"] },
+          { label: "Go-Forward Motion", value: result.recommendedGoForwardMotion, editPath: ["recommendedGoForwardMotion"] },
         ]}
       />
 
@@ -1050,7 +1084,7 @@ function FullLaunchDisplay({ result, externalUrl, onOpenReport }: {
 
 // ─── Decision Layer Display ─────────────────────────────────────────────────
 
-function DecisionLayer({ items, accent }: { items: { label: string; value: any }[]; accent: string }) {
+function DecisionLayer({ items, accent, onSurgicalEdit }: { items: { label: string; value: any; editPath?: string[] }[]; accent: string; onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void> }) {
   const validItems = items.filter(i => i.value && i.value !== 'pending.' && !String(i.value).endsWith(' pending.'));
   if (validItems.length === 0) return null;
 
@@ -1079,9 +1113,20 @@ function DecisionLayer({ items, accent }: { items: { label: string; value: any }
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
               {item.label}
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.55 }}>
-              {Array.isArray(item.value) ? item.value.join(" · ") : String(item.value)}
-            </div>
+            {onSurgicalEdit && item.editPath && !Array.isArray(item.value) ? (
+              <SurgicalEditPopover
+                text={String(item.value)}
+                accent={accent}
+                onEdit={async (oldText, newText) => {
+                  await onSurgicalEdit(item.editPath!, oldText, newText);
+                }}
+                style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.55 }}
+              />
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.55 }}>
+                {Array.isArray(item.value) ? item.value.join(" · ") : String(item.value)}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -1138,15 +1183,23 @@ function Row({
   isLink,
   isBadge,
   highlight,
+  onSurgicalEdit,
+  editPath,
+  accent,
 }: {
   label: string;
   value: any;
   isLink?: boolean;
   isBadge?: boolean;
   highlight?: boolean;
+  onSurgicalEdit?: (path: string[], oldText: string, newText: string) => Promise<void>;
+  editPath?: string[];
+  accent?: string;
 }) {
   if (value === undefined || value === null) return null;
   const stringValue = typeof value === "object" ? JSON.stringify(value) : String(value);
+
+  const canEdit = !!(onSurgicalEdit && editPath && !isLink && !isBadge);
 
   return (
     <div style={{
@@ -1183,6 +1236,22 @@ function Row({
         </a>
       ) : isBadge ? (
         <VerdictBadge value={stringValue} />
+      ) : canEdit ? (
+        <SurgicalEditPopover
+          text={stringValue}
+          accent={accent}
+          onEdit={async (oldText, newText) => {
+            await onSurgicalEdit!(editPath!, oldText, newText);
+          }}
+          style={{
+            fontSize: 13,
+            color: highlight ? "var(--text)" : "var(--text-soft)",
+            fontWeight: highlight ? 600 : 400,
+            lineHeight: 1.5,
+            flex: 1,
+            minWidth: 0,
+          }}
+        />
       ) : (
         <span style={{
           fontSize: 13,

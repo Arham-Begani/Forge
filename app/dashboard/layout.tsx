@@ -84,6 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [isSubmittingProject, setIsSubmittingProject] = useState(false)
   const newProjectRef = useRef<HTMLInputElement>(null)
 
   // Rename state
@@ -243,7 +244,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // ─── CRUD handlers ────────────────────────────────────────────────────────
   async function submitNewProject() {
     const trimmed = newProjectName.trim()
-    if (!trimmed) { setShowNewProject(false); setNewProjectName(''); return }
+    if (!trimmed || isSubmittingProject) { setShowNewProject(false); setNewProjectName(''); return }
+    
+    setIsSubmittingProject(true)
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -262,6 +265,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     } catch (e) {
       alert(`Network error creating project: ${e}`)
     } finally {
+      setIsSubmittingProject(false)
       setShowNewProject(false)
       setNewProjectName('')
     }
@@ -548,7 +552,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         value={newProjectName}
                         onChange={e => setNewProjectName(e.target.value)}
                         onKeyDown={handleProjectKeyDown}
-                        onBlur={() => submitNewProject()}
+                        onBlur={() => { if (newProjectName.trim()) submitNewProject(); else { setShowNewProject(false); setNewProjectName(''); } }}
                         placeholder="Project name..."
                         style={newInputStyle}
                       />

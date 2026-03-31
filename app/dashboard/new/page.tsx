@@ -49,10 +49,8 @@ export default function NewProjectPage() {
   const [parsing, setParsing] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [planSlug, setPlanSlug] = useState<string | null>(null)
 
-  const BUILDER_PLUS_PLANS = ['builder', 'pro', 'studio']
-  const canUploadDocs = planSlug ? BUILDER_PLUS_PLANS.includes(planSlug) : false
+  const canUploadDocs = true // Enable document upload for all users
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files).slice(0, 5 - docs.length) // max 5 docs
@@ -81,10 +79,6 @@ export default function NewProjectPage() {
 
   useEffect(() => {
     setMounted(true)
-    fetch('/api/billing/me')
-      .then(r => r.json())
-      .then(d => { if (d.planSlug) setPlanSlug(d.planSlug) })
-      .catch(() => {})
   }, [])
 
   const canSubmit = ideaInput.trim().length > 5 && !submitting
@@ -325,12 +319,12 @@ export default function NewProjectPage() {
 
           {/* Document upload zone */}
           <div
-            onDragOver={(e) => { if (canUploadDocs) { e.preventDefault(); setDragOver(true) } }}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault()
               setDragOver(false)
-              if (canUploadDocs && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files)
+              if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files)
             }}
             style={{
               border: `1px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
@@ -341,18 +335,17 @@ export default function NewProjectPage() {
               display: 'flex',
               flexDirection: 'column',
               gap: 8,
-              opacity: canUploadDocs ? 1 : 0.5,
             }}
           >
             {docs.length === 0 && !parsing && (
               <div
-                onClick={() => canUploadDocs ? fileInputRef.current?.click() : undefined}
+                onClick={() => fileInputRef.current?.click()}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  cursor: canUploadDocs ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   color: 'var(--muted)',
                   fontSize: 12,
                 }}
@@ -360,10 +353,7 @@ export default function NewProjectPage() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                {canUploadDocs
-                  ? 'Drop PDF, TXT, or MD files here — or click to browse'
-                  : 'Upload reference docs — available on Builder+ plans'
-                }
+                Drop PDF, TXT, or MD files here — or click to browse
               </div>
             )}
 

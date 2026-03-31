@@ -32,11 +32,18 @@ const TESTIMONIALS = [
   },
 ]
 
-function Stars({ count }: { count: number }) {
+function Stars({ count, visible, cardIndex }: { count: number; visible: boolean; cardIndex: number }) {
   return (
     <div style={{ display: 'flex', gap: '2px' }}>
       {Array.from({ length: count }).map((_, i) => (
-        <span key={i} style={{ color: '#f59e0b', fontSize: '14px' }}>★</span>
+        <span key={i} style={{
+          color: '#f59e0b',
+          fontSize: '14px',
+          display: 'inline-block',
+          animation: visible
+            ? `badge-pop 0.4s ${cardIndex * 0.15 + i * 0.08}s cubic-bezier(0.34,1.56,0.64,1) both`
+            : 'none',
+        }}>★</span>
       ))}
     </div>
   )
@@ -60,7 +67,26 @@ export function Testimonials() {
       padding: 'clamp(64px, 8vw, 112px) 24px',
       maxWidth: '1100px',
       margin: '0 auto',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Ambient background blobs */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <div style={{
+          position: 'absolute', top: '20%', right: '-10%',
+          width: '500px', height: '500px', borderRadius: '50%',
+          background: 'radial-gradient(circle, hsla(28,62%,42%,0.07) 0%, transparent 70%)',
+          animation: 'blob-float 16s ease-in-out infinite',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '10%', left: '-8%',
+          width: '400px', height: '400px', borderRadius: '50%',
+          background: 'radial-gradient(circle, hsla(210,50%,50%,0.05) 0%, transparent 70%)',
+          animation: 'blob-float 20s ease-in-out infinite reverse',
+        }} />
+      </div>
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
       {/* Header */}
       <div style={{
         textAlign: 'center',
@@ -111,7 +137,7 @@ export function Testimonials() {
               e.currentTarget.style.transform = 'translateY(0) scale(1)'
             }}
           >
-            <Stars count={t.stars} />
+            <Stars count={t.stars} visible={visible} cardIndex={i} />
 
             <p style={{
               fontFamily: 'var(--font-dm-sans), sans-serif',
@@ -153,6 +179,7 @@ export function Testimonials() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

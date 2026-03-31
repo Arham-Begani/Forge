@@ -116,9 +116,6 @@ export function PricingSection() {
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(190px, 100%), 1fr))',
           gap: '16px',
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(24px)',
-          transition: 'opacity 0.6s 0.15s ease, transform 0.6s 0.15s ease',
         }}>
           {PLAN_ORDER.map((slug, i) => {
             const plan = BILLING_PLANS[slug]
@@ -148,8 +145,11 @@ export function PricingSection() {
                     : '1px solid var(--glass-border)',
                   boxShadow: isHighlighted ? 'var(--shadow-accent)' : 'none',
                   animation: isHighlighted ? 'border-glow 3s ease-in-out infinite' : 'none',
-                  transition: 'transform var(--transition-fast), box-shadow var(--transition-fast)',
-                  transform: isHighlighted ? 'scale(1.03)' : 'scale(1)',
+                  transition: `transform var(--transition-fast), box-shadow var(--transition-fast), opacity 0.6s ${0.1 + i * 0.08}s cubic-bezier(0.16,1,0.3,1)`,
+                  transform: visible
+                    ? (isHighlighted ? 'scale(1.03)' : 'translateY(0) scale(1)')
+                    : 'translateY(28px) scale(0.97)',
+                  opacity: visible ? 1 : 0,
                   animationDelay: `${i * 0.07}s`,
                 }}
                 onMouseEnter={e => {
@@ -165,6 +165,26 @@ export function PricingSection() {
                   }
                 }}
               >
+                {/* Ambient particles for highlighted card */}
+                {isHighlighted && [
+                  { top: '15%', left: '8%', size: 4, delay: '0s', dur: '3.5s' },
+                  { top: '70%', left: '85%', size: 3, delay: '0.8s', dur: '4.2s' },
+                  { top: '40%', left: '90%', size: 5, delay: '0.3s', dur: '3.8s' },
+                  { top: '80%', left: '20%', size: 3, delay: '1.2s', dur: '4.5s' },
+                ].map((p, j) => (
+                  <div key={j} style={{
+                    position: 'absolute',
+                    top: p.top,
+                    left: p.left,
+                    width: `${p.size}px`,
+                    height: `${p.size}px`,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                    opacity: 0.35,
+                    pointerEvents: 'none',
+                    animation: `blob-float ${p.dur} ease-in-out ${p.delay} infinite`,
+                  }} />
+                ))}
                 {/* Popular badge */}
                 {isHighlighted && (
                   <div style={{
@@ -182,6 +202,7 @@ export function PricingSection() {
                     fontFamily: 'var(--font-dm-sans), sans-serif',
                     whiteSpace: 'nowrap',
                     boxShadow: 'var(--shadow-accent)',
+                    animation: 'glow-pulse 2s ease-in-out infinite',
                   }}>
                     MOST POPULAR
                   </div>

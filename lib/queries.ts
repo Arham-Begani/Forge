@@ -180,7 +180,7 @@ export async function getProject(id: string, userId: string): Promise<Project | 
 
 export async function updateProject(
   id: string,
-  updates: { name?: string; description?: string; icon?: string; status?: 'active' | 'archived'; global_idea?: string }
+  updates: { name?: string; description?: string; icon?: string; status?: 'active' | 'archived'; global_idea?: string; source_documents?: SourceDocument[] }
 ): Promise<void> {
   const db = await createDb()
   const { error } = await db
@@ -382,6 +382,53 @@ export async function setConversationResult(
     .eq('id', id)
 
   if (error) throw new Error(`setConversationResult failed: ${error.message}`)
+}
+
+export async function patchConversationResult(
+  id: string,
+  path: string[],
+  oldText: string,
+  newText: string
+): Promise<Record<string, unknown>> {
+  const db = await createDb()
+  const { data, error } = await db
+    .from('conversations')
+    .select('result')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) throw new Error(`patchConversationResult: conversation not found`)
+
+  const result = structuredClone(data.result) as Record<string, unknown>
+
+  // Walk the JSON path to find the target field
+  let target: any = result
+  for (let i = 0; i < path.length - 1; i++) {
+    if (target == null || typeof target !== 'object') {
+      throw new Error(`patchConversationResult: invalid path at segment "${path[i]}"`)
+    }
+    target = target[path[i]]
+  }
+
+  const lastKey = path[path.length - 1]
+  if (target == null || typeof target !== 'object' || !(lastKey in target)) {
+    throw new Error(`patchConversationResult: field "${lastKey}" not found`)
+  }
+
+  const currentValue = String(target[lastKey])
+  if (!currentValue.includes(oldText)) {
+    throw new Error(`patchConversationResult: old text not found in field`)
+  }
+
+  target[lastKey] = currentValue.replace(oldText, newText)
+
+  const { error: updateError } = await db
+    .from('conversations')
+    .update({ result })
+    .eq('id', id)
+
+  if (updateError) throw new Error(`patchConversationResult failed: ${updateError.message}`)
+  return result
 }
 
 export async function getConversationsByModule(

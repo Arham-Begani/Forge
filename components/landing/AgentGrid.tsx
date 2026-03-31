@@ -152,6 +152,8 @@ export function AgentGrid() {
           transform: visible ? 'translateY(0)' : 'translateY(24px)',
           transition: 'opacity 0.6s 0.1s ease, transform 0.6s 0.1s ease, border-color var(--transition-fast), box-shadow var(--transition-fast)',
           cursor: 'default',
+          position: 'relative',
+          overflow: 'hidden',
         }}
         onMouseEnter={e => {
           e.currentTarget.style.borderColor = `${FEATURED.accent}60`
@@ -162,6 +164,18 @@ export function AgentGrid() {
           e.currentTarget.style.boxShadow = 'none'
         }}
       >
+        {/* Scan-line sweep */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '2px',
+          background: `linear-gradient(to right, transparent, ${FEATURED.accent}80, transparent)`,
+          animation: 'scan-line 3s ease-in-out infinite',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }} />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
             <div style={{
@@ -242,6 +256,9 @@ export function AgentGrid() {
               borderRadius: 'var(--radius-md)',
               background: `${sub.accent}12`,
               border: `1px solid ${sub.accent}25`,
+              opacity: visible ? 1 : 0,
+              transform: visible ? 'translateX(0)' : 'translateX(16px)',
+              transition: `opacity 0.5s ${0.3 + i * 0.1}s ease, transform 0.5s ${0.3 + i * 0.1}s ease`,
             }}>
               <span style={{ fontSize: '14px', color: sub.accent }}>{sub.icon}</span>
               <span style={{
@@ -289,6 +306,18 @@ export function AgentGrid() {
               cursor: 'default',
             }}
           >
+            {/* Pulsing activity dot */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: agent.accent,
+              animation: `pulse 2s ease-in-out ${i * 0.3}s infinite`,
+              opacity: 0.7,
+            }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '20px', color: agent.accent }}>{agent.icon}</span>

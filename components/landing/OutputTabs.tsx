@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+const BARS = [
+  { label: 'TAM', value: '$2.4B', pct: 100, color: '#5A8C6E' },
+  { label: 'SAM', value: '$180M', pct: 75, color: '#6B9F80' },
+  { label: 'SOM', value: '$4.2M', pct: 40, color: '#7AAF90' },
+]
+
 const TABS = [
   { id: 'research', label: 'Research', icon: '◎', accent: '#5A8C6E' },
   { id: 'branding', label: 'Branding', icon: '◇', accent: '#5A6E8C' },
@@ -10,21 +16,17 @@ const TABS = [
   { id: 'shadow', label: 'Shadow Board', icon: '⚔', accent: '#E04848' },
 ]
 
-function ResearchPreview() {
+function ResearchPreview({ barsVisible }: { barsVisible: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Market sizing bars */}
       <div>
         <p style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '11px', color: 'var(--muted)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Market Sizing</p>
-        {[
-          { label: 'TAM', value: '$2.4B', pct: 100, color: '#5A8C6E' },
-          { label: 'SAM', value: '$180M', pct: 75, color: '#6B9F80' },
-          { label: 'SOM', value: '$4.2M', pct: 40, color: '#7AAF90' },
-        ].map(bar => (
+        {BARS.map((bar, index) => (
           <div key={bar.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: '11px', color: 'var(--muted)', width: '32px', flexShrink: 0 }}>{bar.label}</span>
             <div style={{ flex: 1, height: '8px', borderRadius: '4px', background: 'var(--border)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${bar.pct}%`, background: bar.color, borderRadius: '4px', transition: 'width 1s ease' }} />
+              <div style={{ height: '100%', width: barsVisible ? `${bar.pct}%` : '0%', background: bar.color, borderRadius: '4px', transition: `width 1s ${0.1 + index * 0.18}s ease` }} />
             </div>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: '12px', color: 'var(--text-soft)', fontWeight: 600, width: '48px', textAlign: 'right', flexShrink: 0 }}>{bar.value}</span>
           </div>
@@ -237,18 +239,22 @@ function ShadowPreview() {
   )
 }
 
-const PREVIEW_MAP: Record<string, React.ReactNode> = {
-  research: <ResearchPreview />,
-  branding: <BrandingPreview />,
-  landing: <LandingPreview />,
-  feasibility: <FeasibilityPreview />,
-  shadow: <ShadowPreview />,
+function getPreviewMap(barsVisible: boolean): Record<string, React.ReactNode> {
+  return {
+    research: <ResearchPreview barsVisible={barsVisible} />,
+    branding: <BrandingPreview />,
+    landing: <LandingPreview />,
+    feasibility: <FeasibilityPreview />,
+    shadow: <ShadowPreview />,
+  }
 }
 
 export function OutputTabs() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [activeTab, setActiveTab] = useState('research')
+  const [barsVisible, setBarsVisible] = useState(false)
+  const [userSelected, setUserSelected] = useState(false)
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -258,6 +264,25 @@ export function OutputTabs() {
     if (sectionRef.current) obs.observe(sectionRef.current)
     return () => obs.disconnect()
   }, [])
+
+  useEffect(() => {
+    if (visible) {
+      const t = setTimeout(() => setBarsVisible(true), 300)
+      return () => clearTimeout(t)
+    }
+  }, [visible])
+
+  // Auto-cycle tabs every 5s unless user has selected manually
+  useEffect(() => {
+    if (!visible || userSelected) return
+    const id = setInterval(() => {
+      setActiveTab(prev => {
+        const idx = TABS.findIndex(t => t.id === prev)
+        return TABS[(idx + 1) % TABS.length].id
+      })
+    }, 5000)
+    return () => clearInterval(id)
+  }, [visible, userSelected])
 
   const active = TABS.find(t => t.id === activeTab)!
 
@@ -296,7 +321,7 @@ export function OutputTabs() {
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setUserSelected(true) }}
               style={{
                 flex: '1 1 auto',
                 padding: '10px 16px',
@@ -338,13 +363,14 @@ export function OutputTabs() {
             animation: 'fade-in-scale 0.35s ease both',
           }}
         >
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', background: `${active.accent}08` }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', background: `${active.accent}08`, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', background: `linear-gradient(to right, transparent, ${active.accent}10)`, pointerEvents: 'none' }} />
             <span style={{ fontSize: '16px', color: active.accent }}>{active.icon}</span>
             <span style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{active.label} Output</span>
             <span style={{ marginLeft: 'auto', padding: '2px 10px', borderRadius: '999px', background: '#22c55e20', color: '#22c55e', fontSize: '11px', fontWeight: 600, fontFamily: 'var(--font-dm-sans)' }}>● Live</span>
           </div>
           <div style={{ padding: '24px' }}>
-            {PREVIEW_MAP[activeTab]}
+            {getPreviewMap(barsVisible)[activeTab]}
           </div>
         </div>
       </div>

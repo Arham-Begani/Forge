@@ -87,20 +87,28 @@ export function FAQ() {
               style={{
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--border)',
+                borderLeft: isOpen ? '3px solid var(--accent)' : '3px solid transparent',
                 background: isOpen ? 'var(--glass-bg)' : 'transparent',
                 backdropFilter: isOpen ? 'blur(var(--glass-blur))' : 'none',
                 WebkitBackdropFilter: isOpen ? 'blur(var(--glass-blur))' : 'none',
                 overflow: 'hidden',
-                transition: 'background var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-fast), box-shadow var(--transition-fast)',
+                transition: 'background var(--transition-smooth), border-color var(--transition-smooth), border-left-color var(--transition-smooth), transform var(--transition-fast), box-shadow var(--transition-fast)',
                 borderColor: isOpen ? 'hsla(28,62%,42%,0.25)' : 'var(--border)',
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateY(0)' : 'translateY(16px)',
-                transitionDelay: visible ? `${i * 0.05}s` : '0s',
+                transitionDelay: visible ? `${i * 0.07}s` : '0s',
                 boxShadow: isOpen ? '0 8px 24px -4px hsla(28,62%,42%,0.12)' : 'none',
+                animation: isOpen ? 'border-glow 3s ease-in-out infinite' : 'none',
               }}
             >
               <button
                 onClick={() => setOpenIdx(isOpen ? null : i)}
+                onMouseEnter={e => {
+                  if (!isOpen) (e.currentTarget.parentElement as HTMLElement).style.borderColor = 'hsla(28,62%,42%,0.25)'
+                }}
+                onMouseLeave={e => {
+                  if (!isOpen) (e.currentTarget.parentElement as HTMLElement).style.borderColor = 'var(--border)'
+                }}
                 style={{
                   width: '100%',
                   padding: '18px 20px',

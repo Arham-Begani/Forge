@@ -1520,6 +1520,15 @@ export default function ModulePage() {
                           result={entry.result}
                           deploymentUrl={entry.result.deploymentUrl as string}
                           onModalChange={setIsDocumentOpen}
+                          ventureId={ventureId}
+                          conversationId={entry.conversationId}
+                          onResultUpdate={(updatedResult) => {
+                            setConversations(prev => prev.map(c =>
+                              c.conversationId === entry.conversationId
+                                ? { ...c, result: updatedResult }
+                                : c
+                            ))
+                          }}
                         />
                       </motion.div>
                     )}

@@ -36,7 +36,9 @@ function Cell({ value, isForze, animDelay }: { value: CellValue; isForze?: boole
           fontSize: '12px',
           color: '#22c55e',
           flexShrink: 0,
-          animation: `badge-pop 0.4s ${animDelay ?? '0s'} cubic-bezier(0.34,1.56,0.64,1) both`,
+          animation: isForze
+            ? `badge-pop 0.4s ${animDelay ?? '0s'} cubic-bezier(0.34,1.56,0.64,1) both, glow-pulse 3s ${animDelay ?? '0s'} ease-in-out infinite`
+            : `badge-pop 0.4s ${animDelay ?? '0s'} cubic-bezier(0.34,1.56,0.64,1) both`,
         }}>
           ✓
         </div>
@@ -266,6 +268,7 @@ export function ComparisonTable() {
               background: col.highlight ? 'hsla(28,62%,42%,0.06)' : 'transparent',
               borderLeft: col.highlight ? '1px solid hsla(28,62%,42%,0.2)' : '1px solid var(--border)',
               borderRight: col.highlight ? '1px solid hsla(28,62%,42%,0.2)' : 'none',
+              animation: col.highlight ? 'gradient-shift 6s ease infinite' : 'none',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -305,6 +308,9 @@ export function ComparisonTable() {
             borderBottom: '1px solid var(--border)',
             background: i % 2 === 0 ? 'transparent' : 'hsla(0,0%,0%,0.015)',
             transition: 'background var(--transition-fast)',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateX(0)' : 'translateX(-12px)',
+            transitionDelay: `${0.2 + i * 0.04}s`,
           }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-soft)')}
             onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'hsla(0,0%,0%,0.015)')}
