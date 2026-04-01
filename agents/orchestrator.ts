@@ -4,6 +4,7 @@ import { runPipelineAgent, PipelineOutput } from './pipeline'
 import { runFeasibilityAgent, FeasibilityOutput } from './feasibility'
 import { runContentAgent, ContentOutput } from './content'
 import { getProModelWithThinking, streamPrompt, withTimeout, withRetry, Content } from '../lib/gemini'
+import { sanitize, sanitizeLabel } from '../lib/sanitize'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,8 +43,8 @@ export async function runFullLaunch(
        Output a short task plan (under 300 words) then stop.
 
        IMPORTANT: Do not output any conversational text or "Thought Process" headers. Any step-by-step reasoning or thought process MUST be strictly wrapped inside <think> and </think> tags. Only the final output should be outside the <think> tags.`,
-      `Venture concept: ${venture.name}
-${venture.globalIdea ? `Global Startup Vision: ${venture.globalIdea}\n` : ''}
+      `Venture concept: ${sanitizeLabel(venture.name)}
+${venture.globalIdea ? `Global Startup Vision: ${sanitize(venture.globalIdea, 1000)}\n` : ''}
        Briefly plan what each agent should focus on for this specific venture.
        Be concrete and specific to this idea — not generic instructions.`,
       onStream,
@@ -57,7 +58,7 @@ ${venture.globalIdea ? `Global Startup Vision: ${venture.globalIdea}\n` : ''}
   } catch (architectErr) {
     const msg = architectErr instanceof Error ? architectErr.message : String(architectErr)
     await onStream(`[Architect step skipped — ${msg}]\n\n`)
-    architectPlanText = `Proceed with full analysis of: ${venture.name}`
+    architectPlanText = `Proceed with full analysis of: ${sanitizeLabel(venture.name)}`
   }
 
   await onStream('\n\n')
