@@ -9,6 +9,7 @@ import {
     Content,
 } from '@/lib/gemini'
 import { resolveLandingComponent, isRenderableLandingComponent } from '@/lib/landing-page'
+import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
 // ── PipelineOutput Zod Schema ────────────────────────────────────────────────
 
@@ -429,8 +430,8 @@ export async function runPipelineAgent(
     const hasBranding = !!venture.context.branding
 
     const contextParts: string[] = []
-    if (venture.context?.architectPlan) contextParts.push(`## Architect's Plan\n${venture.context.architectPlan}`)
-    if (venture.globalIdea) contextParts.push(`## Global Startup Vision\n${venture.globalIdea}`)
+    if (venture.context?.architectPlan) contextParts.push(`## Architect's Plan\n${sanitize(venture.context.architectPlan, 3000)}`)
+    if (venture.globalIdea) contextParts.push(`## Global Startup Vision\n${sanitize(venture.globalIdea, 1000)}`)
 
     // Research — extract structured design tokens instead of raw JSON dump
     if (hasResearch) {
@@ -520,7 +521,7 @@ export async function runPipelineAgent(
 ${contextParts.join('\n\n')}
 
 ## Venture Focus
-${venture.name}
+${sanitizeLabel(venture.name)}
 
 ${!hasResearch && !hasBranding ? '## Note\nNo prior research or branding data is available. Use your best judgment to create a compelling, modern landing page based on the venture concept. Choose appropriate colors, voice, and positioning.\n' : ''}
 
@@ -569,7 +570,7 @@ Output the complete PipelineOutput JSON.`
                 fullComponent: componentPreview,
             }
 
-            const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Landing Page Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+            const editUserMessage = `## Edit Request\n${sanitizeLabel(venture.name)}\n\n## Current Landing Page Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
 
             let fullText = ''
             await streamPrompt(
