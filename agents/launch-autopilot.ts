@@ -7,6 +7,7 @@ import {
     withRetry,
     Content,
 } from '@/lib/gemini'
+import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
 // ── Launch Autopilot Output Schema ──────────────────────────────────────────
 
@@ -223,7 +224,7 @@ export async function runLaunchAutopilotAgent(
                 : existingLaunch!.postLaunchAdvice,
         }
 
-        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Launch Plan\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+        const editUserMessage = `## Edit Request\n${sanitizeLabel(venture.name)}\n\n## Current Launch Plan\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
 
         const editRun = async () => {
             const fullText = await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, onStream)
@@ -242,7 +243,7 @@ export async function runLaunchAutopilotAgent(
     const contextParts: string[] = []
 
     if (venture.globalIdea) {
-        contextParts.push(`Venture Vision: ${venture.globalIdea}`)
+        contextParts.push(`Venture Vision: ${sanitize(venture.globalIdea, 1000)}`)
     }
 
     // Research — extract only what the launch calendar needs
@@ -337,7 +338,7 @@ export async function runLaunchAutopilotAgent(
         ? "Continue from where you left off. Do not repeat anything already outputted. Complete the LaunchAutopilotOutput JSON object strictly."
         : `Generate a complete 14-day launch execution calendar for this venture.
 
-Venture: ${venture.name}
+Venture: ${sanitizeLabel(venture.name)}
 
 ${contextParts.join('\n\n')}
 
