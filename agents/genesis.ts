@@ -8,6 +8,7 @@ import {
     Content,
 } from '@/lib/gemini'
 import { DOCUMENT_STYLE_GUIDE } from '@/lib/agent-document-style'
+import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
 // ── GenesisOutput Zod Schema ─────────────────────────────────────────────────
 
@@ -399,7 +400,7 @@ export async function runGenesisAgent(
                 : existingResearch!.researchPaper,
         }
 
-        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Research Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+        const editUserMessage = `## Edit Request\n${sanitizeLabel(venture.name)}\n\n## Current Research Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
 
         const editRun = async () => {
             const model = getFlashModelWithSearch()
@@ -423,7 +424,7 @@ export async function runGenesisAgent(
     
     RESEARCH DEPTH REQUESTED: ${depth} (Intensity: ${searchCountMap[depth]} searches)
 
-${venture.context?.architectPlan ? `Architect's Plan:\n${venture.context.architectPlan}\n\n` : ''}${venture.globalIdea ? `Global Startup Vision: ${venture.globalIdea}\n` : ''}Specific Venture Focus: ${venture.name}
+${venture.context?.architectPlan ? `Architect's Plan:\n${sanitize(venture.context.architectPlan, 3000)}\n\n` : ''}${venture.globalIdea ? `Global Startup Vision: ${sanitize(venture.globalIdea, 1000)}\n` : ''}Specific Venture Focus: ${sanitizeLabel(venture.name)}
 
 Run at minimum ${searchCountMap[depth]} distinct searches covering:
 1. Pain points and frustrations in this space
