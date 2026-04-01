@@ -8,6 +8,7 @@ import {
     withRetry,
     Content,
 } from '@/lib/gemini'
+import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
 // ── ShadowBoard Zod Schema ───────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ export async function runShadowBoard(
             syntheticFeedback: existingShadow!.syntheticFeedback,
         }
 
-        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Shadow Board Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+        const editUserMessage = `## Edit Request\n${sanitizeLabel(venture.name)}\n\n## Current Shadow Board Data\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
 
         const editRun = async () => {
             const model = getFlashModel()
@@ -295,9 +296,9 @@ export async function runShadowBoard(
         feasibilityContext = lines.length > 0 ? lines.join('\n') : 'Feasibility data present but no key fields found.'
     }
 
-    const userMessage = `Convene the Shadow Board for the venture: "${venture.name}".
+    const userMessage = `Convene the Shadow Board for the venture: "${sanitizeLabel(venture.name)}".
 
-Project Vision: ${venture.globalIdea || 'N/A'}
+Project Vision: ${venture.globalIdea ? sanitize(venture.globalIdea, 1000) : 'N/A'}
 
 Full Context:
 Research:
