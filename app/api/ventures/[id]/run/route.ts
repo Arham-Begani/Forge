@@ -3,6 +3,7 @@
 export const maxDuration = 300
 
 import { requireAuth, AuthError, isAuthError } from '@/lib/auth'
+import { sanitizeLabel } from '@/lib/sanitize'
 import { type BillingModuleId } from '@/lib/billing'
 import { BillingError, assertCanRunModule, assertHourlyRateLimit, recordUsageCharge } from '@/lib/billing-queries'
 import {
@@ -63,10 +64,12 @@ interface Decision {
 function formatDecisionsForPrompt(decisions: Decision[]): string {
     if (!decisions || decisions.length === 0) return ''
     const lines = decisions.map(d => {
+        const safeLabel = sanitizeLabel(d.selectedLabel, 100)
+        const safeDesc = sanitizeLabel(d.selectedDescription, 200)
         const answer = d.customAnswer
-            ? `${d.selectedLabel} — ${d.customAnswer}`
-            : `${d.selectedLabel} (${d.selectedDescription})`
-        return `- ${d.category}: ${d.question}\n  → User chose: ${answer}`
+            ? `${safeLabel} — ${sanitizeLabel(d.customAnswer, 300)}`
+            : `${safeLabel} (${safeDesc})`
+        return `- ${sanitizeLabel(d.category, 60)}: ${sanitizeLabel(d.question, 200)}\n  → User chose: ${answer}`
     })
     return `\n\n--- FOUNDER DECISIONS ---\nThe founder answered these strategic questions before this run. Incorporate their preferences:\n${lines.join('\n')}\n--- END DECISIONS ---\n`
 }
