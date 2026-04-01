@@ -8,6 +8,7 @@ import {
     Content,
 } from '@/lib/gemini'
 import { DOCUMENT_STYLE_GUIDE } from '@/lib/agent-document-style'
+import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
 // ── IdentityOutput Zod Schema ────────────────────────────────────────────────
 
@@ -348,8 +349,8 @@ export async function runIdentityAgent(
     const hasResearch = !!venture.context.research
 
     const contextParts: string[] = []
-    if (venture.context?.architectPlan) contextParts.push(`Architect's Plan:\n${venture.context.architectPlan}`)
-    if (venture.globalIdea) contextParts.push(`Global Startup Vision: ${venture.globalIdea}`)
+    if (venture.context?.architectPlan) contextParts.push(`Architect's Plan:\n${sanitize(venture.context.architectPlan, 3000)}`)
+    if (venture.globalIdea) contextParts.push(`Global Startup Vision: ${sanitize(venture.globalIdea, 1000)}`)
     if (hasResearch) {
         const r = venture.context.research as Record<string, any>
         const lines: string[] = []
@@ -410,7 +411,7 @@ export async function runIdentityAgent(
                 : existingBranding!.brandBible,
         }
 
-        const editUserMessage = `## Edit Request\n${venture.name}\n\n## Current Brand Identity\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
+        const editUserMessage = `## Edit Request\n${sanitizeLabel(venture.name)}\n\n## Current Brand Identity\n\`\`\`json\n${JSON.stringify(existingForContext, null, 2)}\n\`\`\`\n\nApply the requested change. Output ONLY the fields that need to change as a JSON patch.`
 
         const editRun = async () => {
             const model = getFlashModel()
@@ -433,7 +434,7 @@ export async function runIdentityAgent(
 
 ${contextParts.join('\n\n')}
 
-Specific Venture Focus: ${venture.name}
+Specific Venture Focus: ${sanitizeLabel(venture.name)}
 
 ${hasResearch
     ? 'The brand name, voice, and colors must be specific to this market based on the research above.'
