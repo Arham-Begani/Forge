@@ -6,6 +6,7 @@ import {
 } from '@/lib/marketing-oauth'
 import { parseSocialProvider, requireMarketingSession } from '@/lib/marketing-api'
 import { upsertSocialConnection } from '@/lib/marketing-queries'
+import { sanitizeUrlParam } from '@/lib/sanitize'
 import { NextRequest, NextResponse } from 'next/server'
 
 function buildRedirect(request: NextRequest, path: string, status: 'success' | 'error', provider: string, message?: string) {
@@ -40,7 +41,8 @@ export async function GET(
     const code = request.nextUrl.searchParams.get('code')
 
     if (error) {
-      const response = NextResponse.redirect(buildRedirect(request, returnTo, 'error', provider, errorDescription || error))
+      const safeMessage = sanitizeUrlParam(errorDescription || error, 200)
+      const response = NextResponse.redirect(buildRedirect(request, returnTo, 'error', provider, safeMessage))
       response.cookies.delete(cookieName)
       return response
     }
