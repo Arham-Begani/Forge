@@ -25,7 +25,6 @@ Read PRD.md for the full product vision before starting any task.
 - Never use localStorage or sessionStorage — use Antigravity DB
 
 ### After every task
-- Commit after every working feature (not every session — every working feature)
 - Update PROGRESS.md with what was built, what broke, what's next
 
 ---
