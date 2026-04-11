@@ -11,6 +11,8 @@ import {
 } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type ToastType = 'success' | 'error' | 'info'
 
 interface ToastRecord {
@@ -27,201 +29,244 @@ interface ToastContextValue {
   info: (message: string, duration?: number) => void
 }
 
+// ─── Context ──────────────────────────────────────────────────────────────────
+
 const ToastContext = createContext<ToastContextValue | null>(null)
 
-const TOAST_META: Record<ToastType, { color: string; label: string; icon: ReactNode }> = {
+// ─── Per-type config ──────────────────────────────────────────────────────────
+
+const TYPE_CONFIG: Record<ToastType, { accent: string; glyph: ReactNode }> = {
   success: {
-    color: '#5A8C6E',
-    label: 'Success',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    accent: '#5A8C6E',
+    glyph: (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 6 9 17l-5-5" />
       </svg>
     ),
   },
   error: {
-    color: '#E05252',
-    label: 'Error',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 8v4" />
-        <path d="M12 16h.01" />
+    accent: '#C45A5A',
+    glyph: (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+        <path d="M18 6 6 18" /><path d="M6 6l12 12" />
       </svg>
     ),
   },
   info: {
-    color: '#5A6E8C',
-    label: 'Info',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4" />
-        <path d="M12 8h.01" />
+    accent: '#c07a3a',
+    glyph: (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+        <path d="M12 16v-4M12 8h.01" />
       </svg>
     ),
   },
 }
 
-function ToastItem({
-  toast,
-  onRemove,
-}: {
-  toast: ToastRecord
-  onRemove: (id: string) => void
-}) {
-  const meta = TOAST_META[toast.type]
+// ─── Forze hex mark ───────────────────────────────────────────────────────────
+
+function ForzeHex({ accent }: { accent: string }) {
+  return (
+    <div
+      style={{
+        width: 28,
+        height: 28,
+        background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+        clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        flexShrink: 0,
+        boxShadow: `0 4px 14px ${accent}50`,
+      }}
+    >
+      {TYPE_CONFIG[accent as ToastType]?.glyph}
+    </div>
+  )
+}
+
+// ─── Single toast ─────────────────────────────────────────────────────────────
+
+function ToastItem({ toast, onRemove }: { toast: ToastRecord; onRemove: (id: string) => void }) {
+  const { accent, glyph } = TYPE_CONFIG[toast.type]
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      onRemove(toast.id)
-    }, toast.duration)
-
-    return () => window.clearTimeout(timer)
+    const t = window.setTimeout(() => onRemove(toast.id), toast.duration)
+    return () => window.clearTimeout(t)
   }, [onRemove, toast.duration, toast.id])
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 16, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.97 }}
-      transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+      initial={{ opacity: 0, x: 48, scale: 0.94 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 32, scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       style={{
         position: 'relative',
         overflow: 'hidden',
-        width: 'min(360px, calc(100vw - 32px))',
-        borderRadius: 14,
-        border: '1px solid var(--glass-border, var(--border))',
-        borderLeft: `4px solid ${meta.color}`,
-        background: 'var(--glass-bg-strong, rgba(20, 20, 20, 0.84))',
-        boxShadow: 'var(--shadow-lg, 0 18px 50px rgba(0,0,0,0.18))',
-        backdropFilter: 'blur(18px)',
+        width: 'min(340px, calc(100vw - 28px)',
+        borderRadius: 16,
+        background: 'rgba(13, 13, 12, 0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        boxShadow: `0 24px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.06)`,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          padding: '12px 14px',
-        }}
-      >
+      {/* Subtle top accent line */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0,
+        height: 1.5,
+        background: `linear-gradient(90deg, transparent, ${accent}90, ${accent}, ${accent}90, transparent)`,
+      }} />
+
+      {/* Ambient glow behind hex */}
+      <div style={{
+        position: 'absolute',
+        top: -20, left: -10,
+        width: 80, height: 80,
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px 13px 14px', position: 'relative' }}>
+        {/* Hex icon */}
         <div
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 9,
+            width: 32,
+            height: 32,
+            background: `linear-gradient(135deg, ${accent}ee, ${accent}aa)`,
+            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            color: '#fff',
             flexShrink: 0,
-            color: meta.color,
-            background: `${meta.color}16`,
+            boxShadow: `0 6px 18px ${accent}55`,
           }}
         >
-          {meta.icon}
+          {glyph}
         </div>
+
+        {/* Text */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--muted)',
-              marginBottom: 3,
-            }}
-          >
-            {meta.label}
+          {/* Forze brand label */}
+          <div style={{
+            fontSize: 9,
+            fontWeight: 800,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: accent,
+            marginBottom: 3,
+            fontFamily: 'inherit',
+          }}>
+            Forze
           </div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              lineHeight: 1.45,
-              color: 'var(--text)',
-              wordBreak: 'break-word',
-            }}
-          >
+          {/* Message */}
+          <div style={{
+            fontSize: 13,
+            fontWeight: 600,
+            lineHeight: 1.4,
+            color: 'rgba(255,255,255,0.92)',
+            wordBreak: 'break-word',
+            letterSpacing: '-0.01em',
+          }}>
             {toast.message}
           </div>
         </div>
+
+        {/* Dismiss */}
         <button
           type="button"
           onClick={() => onRemove(toast.id)}
-          aria-label="Dismiss notification"
+          aria-label="Dismiss"
           style={{
             border: 'none',
-            background: 'transparent',
-            color: 'var(--muted)',
+            background: 'rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.35)',
             cursor: 'pointer',
-            padding: 2,
+            padding: 0,
+            width: 22,
+            height: 22,
+            borderRadius: 6,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            transition: 'background 150ms, color 150ms',
+          }}
+          onMouseEnter={e => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.12)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.65)'
+          }}
+          onMouseLeave={e => {
+            ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.35)'
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M18 6 6 18" />
-            <path d="M6 6l12 12" />
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+            <path d="M18 6 6 18" /><path d="M6 6l12 12" />
           </svg>
         </button>
       </div>
 
+      {/* Progress drain bar */}
       <motion.div
         initial={{ scaleX: 1 }}
         animate={{ scaleX: 0 }}
         transition={{ duration: toast.duration / 1000, ease: 'linear' }}
         style={{
           height: 2,
-          background: meta.color,
+          background: `linear-gradient(90deg, ${accent}80, ${accent})`,
           transformOrigin: 'left center',
+          borderRadius: '0 0 0 0',
         }}
       />
     </motion.div>
   )
 }
 
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastRecord[]>([])
 
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const showToast = useCallback((message: string, type: ToastType = 'info', duration = 3000) => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', duration = 3500) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    setToasts((prev) => [...prev, { id, message, type, duration }])
+    setToasts(prev => [...prev, { id, message, type, duration }])
   }, [])
 
   const value = useMemo<ToastContextValue>(() => ({
     showToast,
-    success: (message, duration) => showToast(message, 'success', duration),
-    error: (message, duration) => showToast(message, 'error', duration),
-    info: (message, duration) => showToast(message, 'info', duration),
+    success: (m, d) => showToast(m, 'success', d),
+    error: (m, d) => showToast(m, 'error', d),
+    info: (m, d) => showToast(m, 'info', d),
   }), [showToast])
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-
       <div
         style={{
           position: 'fixed',
-          right: 16,
-          bottom: 16,
+          right: 20,
+          bottom: 20,
           zIndex: 120,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
-          gap: 10,
+          gap: 8,
           pointerEvents: 'none',
         }}
       >
         <AnimatePresence initial={false}>
-          {toasts.map((toast) => (
+          {toasts.map(toast => (
             <div key={toast.id} style={{ pointerEvents: 'auto' }}>
               <ToastItem toast={toast} onRemove={removeToast} />
             </div>
@@ -232,10 +277,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export function useToast() {
-  const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider')
-  }
-  return context
+  const ctx = useContext(ToastContext)
+  if (!ctx) throw new Error('useToast must be used within a ToastProvider')
+  return ctx
 }
