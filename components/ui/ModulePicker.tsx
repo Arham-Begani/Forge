@@ -31,17 +31,17 @@ const MODULE_GROUPS: { label: string; ids: ModuleId[] }[] = [
 ];
 
 export const MODULES: Record<ModuleId, ModuleDefinition> = {
-  "full-launch": { id: "full-launch", icon: "⬡", label: "Full Launch", accent: "#C4975A", description: "All agents together" },
-  "research": { id: "research", icon: "◎", label: "Research", accent: "#5A8C6E", description: "Market intelligence" },
-  "branding": { id: "branding", icon: "◇", label: "Branding", accent: "#5A6E8C", description: "Brand bible" },
-  "marketing": { id: "marketing", icon: "▲", label: "Marketing", accent: "#8C5A7A", description: "GTM strategy" },
-  "landing": { id: "landing", icon: "▣", label: "Landing Page", accent: "#8C7A5A", description: "Live deployment" },
-  "feasibility": { id: "feasibility", icon: "◈", label: "Feasibility", accent: "#7A5A8C", description: "GO/NO-GO verdict" },
-  "general": { id: "general", icon: "◉", label: "Co-pilot", accent: "#6B8F71", description: "Ask anything" },
-  "shadow-board": { id: "shadow-board", icon: "⚔", label: "Shadow Board", accent: "#E04848", description: "Silicon board review" },
-  "launch-autopilot": { id: "launch-autopilot", icon: "▶", label: "Launch Autopilot", accent: "#B8864E", description: "14-day launch calendar" },
-  "mvp-scalpel": { id: "mvp-scalpel", icon: "✂", label: "MVP Scalpel", accent: "#C45A5A", description: "Cut ruthlessly, ship fast" },
-  "investor-kit": { id: "investor-kit", icon: "◐", label: "Investor Kit", accent: "#7A8C5A", description: "Pitch deck & data room" },
+  "full-launch": { id: "full-launch", icon: "FL", label: "Full Launch", accent: "#C4975A", description: "End-to-end validation run" },
+  "research": { id: "research", icon: "R", label: "Research", accent: "#5A8C6E", description: "Market proof and gaps" },
+  "branding": { id: "branding", icon: "B", label: "Branding", accent: "#5A6E8C", description: "Positioning and identity" },
+  "marketing": { id: "marketing", icon: "M", label: "Marketing", accent: "#8C5A7A", description: "GTM built from context" },
+  "landing": { id: "landing", icon: "LP", label: "Landing Page", accent: "#8C7A5A", description: "Live validation page" },
+  "feasibility": { id: "feasibility", icon: "F", label: "Feasibility", accent: "#7A5A8C", description: "Investor-grade verdict" },
+  "general": { id: "general", icon: "CP", label: "Co-pilot", accent: "#6B8F71", description: "Ask across all outputs" },
+  "shadow-board": { id: "shadow-board", icon: "SB", label: "Shadow Board", accent: "#E04848", description: "Stress-test assumptions" },
+  "launch-autopilot": { id: "launch-autopilot", icon: "LA", label: "Launch Autopilot", accent: "#B8864E", description: "14-day launch execution" },
+  "mvp-scalpel": { id: "mvp-scalpel", icon: "MVP", label: "MVP Scalpel", accent: "#C45A5A", description: "Smallest testable wedge" },
+  "investor-kit": { id: "investor-kit", icon: "IK", label: "Investor Kit", accent: "#7A8C5A", description: "Deck, memo, data room" },
 };
 
 export interface ModulePickerProps {
@@ -84,7 +84,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
             color: currentModule.accent,
           }}
         >
-          <div style={{ width: 22, height: 22, borderRadius: 6, background: `${currentModule.accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>
+          <div style={{ width: 22, height: 22, borderRadius: 6, background: `${currentModule.accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
             {currentModule.icon}
           </div>
           <span>{currentModule.label}</span>
@@ -95,7 +95,6 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
 
   return (
     <div ref={containerRef} className="relative inline-block">
-      {/* Dropdown panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -114,7 +113,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
               boxShadow: "var(--shadow-lg)",
               borderRadius: 16,
               padding: "6px",
-              width: 310,
+              width: 320,
               zIndex: 50,
               display: "flex",
               flexDirection: "column",
@@ -164,13 +163,15 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{
-                          width: 28, height: 28,
+                          width: 32, height: 28,
                           borderRadius: 8,
                           background: `${mod.accent}20`,
                           color: mod.accent,
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 12,
+                          fontSize: 10,
+                          fontWeight: 700,
                           flexShrink: 0,
+                          fontFamily: "'JetBrains Mono', monospace",
                         }}>
                           {mod.icon}
                         </div>
@@ -180,7 +181,7 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
                           </span>
                         </div>
                       </div>
-                      <span style={{ fontSize: 11, color: "var(--muted)", maxWidth: 110, textAlign: "right", lineHeight: 1.3 }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", maxWidth: 118, textAlign: "right", lineHeight: 1.3 }}>
                         {mod.description}
                       </span>
                     </motion.button>
@@ -192,7 +193,6 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
         )}
       </AnimatePresence>
 
-      {/* Pill */}
       <motion.button
         type="button"
         whileHover={{ scale: 1.04, opacity: 0.9 }}
@@ -218,11 +218,13 @@ export function ModulePicker({ selectedModule, onChange }: ModulePickerProps) {
         }}
       >
         <div style={{
-          width: 22, height: 22,
+          width: 24, height: 22,
           borderRadius: 6,
           background: `${currentModule.accent}28`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11,
+          fontSize: 10,
+          fontWeight: 700,
+          fontFamily: "'JetBrains Mono', monospace",
         }}>
           {currentModule.icon}
         </div>

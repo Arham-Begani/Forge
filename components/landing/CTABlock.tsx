@@ -24,14 +24,12 @@ export function CTABlock() {
       overflow: 'hidden',
       textAlign: 'center',
     }}>
-      {/* Gradient background */}
       <div style={{
         position: 'absolute',
         inset: 0,
         background: 'linear-gradient(135deg, hsla(28,62%,42%,0.10) 0%, hsla(210,50%,50%,0.05) 100%)',
         animation: 'gradient-shift 8s ease infinite',
       }} />
-      {/* Center glow */}
       <div style={{
         position: 'absolute',
         top: '50%',
@@ -43,7 +41,6 @@ export function CTABlock() {
         background: 'radial-gradient(ellipse, hsla(28,62%,42%,0.18) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
-      {/* Floating particles */}
       {[
         { top: '15%', left: '8%', size: 5, delay: '0s', duration: '4s' },
         { top: '72%', left: '12%', size: 3, delay: '0.8s', duration: '5s' },
@@ -70,7 +67,7 @@ export function CTABlock() {
       <div style={{
         position: 'relative',
         zIndex: 1,
-        maxWidth: '640px',
+        maxWidth: '700px',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
@@ -89,11 +86,13 @@ export function CTABlock() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '30px',
+          fontSize: '18px',
+          fontWeight: 700,
           color: 'var(--accent)',
           animation: 'glow-pulse 3s ease-in-out infinite',
+          fontFamily: 'var(--font-jetbrains-mono), monospace',
         }}>
-          ⬡
+          GO
         </div>
 
         <h2 style={{
@@ -105,7 +104,7 @@ export function CTABlock() {
           letterSpacing: '-0.025em',
           lineHeight: 1.1,
         }}>
-          Don't wait months to validate.<br />
+          Stop guessing which ideas deserve your time.<br />
           <span style={{
             background: 'linear-gradient(135deg, var(--accent), #e8a04e)',
             WebkitBackgroundClip: 'text',
@@ -123,7 +122,7 @@ export function CTABlock() {
           margin: 0,
           lineHeight: 1.6,
         }}>
-          Get market research, landing page, brand, and financial model instantly.
+          Get the research, feasibility verdict, live page, and investor narrative you need to move with confidence.
         </p>
 
         <button
@@ -151,7 +150,7 @@ export function CTABlock() {
             e.currentTarget.style.boxShadow = '0 12px 36px -4px hsla(28,62%,42%,0.45)'
           }}
         >
-          Validate Your Idea Now →
+          Validate Your Idea Now {'->'}
         </button>
 
         <p style={{

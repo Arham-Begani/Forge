@@ -239,7 +239,7 @@ export const ResultCard = React.memo(function ResultCard({ moduleId, result, dep
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               style={{ overflow: "hidden" }}
             >
-              <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: 12, position: "relative", zIndex: 1 }}>
+              <div style={{ padding: "0 18px 14px", display: "flex", flexDirection: "column", gap: 10, position: "relative", zIndex: 1 }}>
                 {/* Divider */}
                 <div style={{ height: 1, background: "var(--border)", marginBottom: 4 }} />
 
@@ -264,8 +264,8 @@ export const ResultCard = React.memo(function ResultCard({ moduleId, result, dep
               {/* Action buttons */}
               <div style={{
                 display: "flex",
-                gap: 8,
-                padding: "12px 20px 16px",
+                gap: 6,
+                padding: "10px 18px 12px",
                 borderTop: "1px solid var(--border)",
                 position: "relative",
                 zIndex: 1,
@@ -468,7 +468,7 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
   return (
     <>
       <DecisionLayer
-        accent={ACCENT}
+        accent="#5A8C6E"
         onSurgicalEdit={onSurgicalEdit}
         items={[
           { label: "Best Customer Segment", value: result.bestCustomerSegment, editPath: ["bestCustomerSegment"] },
@@ -478,9 +478,9 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
           { label: "Recommended Next Step", value: result.recommendedNextStep, editPath: ["recommendedNextStep"] },
         ]}
       />
-      <Row label="Market Summary" value={result.marketSummary} onSurgicalEdit={onSurgicalEdit} editPath={["marketSummary"]} accent={ACCENT} />
+      <Row label="Market Summary" value={result.marketSummary} onSurgicalEdit={onSurgicalEdit} editPath={["marketSummary"]} accent="#5A8C6E" />
       <Row label="TAM" value={stringTam} />
-      <Row label="Recommended Concept" value={result.recommendedConcept} onSurgicalEdit={onSurgicalEdit} editPath={["recommendedConcept"]} accent={ACCENT} />
+      <Row label="Recommended Concept" value={result.recommendedConcept} onSurgicalEdit={onSurgicalEdit} editPath={["recommendedConcept"]} accent="#5A8C6E" />
 
       {/* ── Premium Market Sizing Chart ── */}
       <motion.div
@@ -488,16 +488,16 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         style={{
-          marginTop: 12,
+          marginTop: 8,
           background: "var(--glass-bg)",
-          borderRadius: 14,
+          borderRadius: 12,
           border: "1px solid var(--border)",
-          padding: "16px 16px 12px",
+          padding: "12px 14px 10px",
           boxShadow: "var(--shadow-sm)",
         }}
       >
         {/* Chart header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <div style={{ width: 10, height: 10, borderRadius: "50%", background: ACCENT, boxShadow: `0 0 8px ${ACCENT}60` }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Market Sizing
@@ -505,8 +505,8 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
           <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>TAM · SAM · SOM</span>
         </div>
 
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={marketData} margin={{ top: 24, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={marketData} margin={{ top: 20, right: 6, left: 0, bottom: 0 }} barCategoryGap="28%">
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={ACCENT} stopOpacity={0.95} />
@@ -552,7 +552,7 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
         </ResponsiveContainer>
 
         {/* Percentage row */}
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
           {marketData.map((d) => (
             <div key={d.segment} style={{
               flex: 1,
@@ -562,8 +562,8 @@ function ResearchDisplay({ result, onOpenReport, onSurgicalEdit }: { result: Rec
               borderRadius: 8,
               border: `1px solid ${ACCENT}20`,
             }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{d.segment}</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: ACCENT, lineHeight: 1.2, marginTop: 2 }}>{d.pctLabel}</div>
+              <div style={{ fontSize: 8, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{d.segment}</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT, lineHeight: 1.2, marginTop: 1 }}>{d.pctLabel}</div>
               </div>
             ))}
           </div>
@@ -950,39 +950,39 @@ function ShadowBoardDisplay({ result }: { result: Record<string, any> }) {
   const feedback = Array.isArray(result.syntheticFeedback) ? result.syntheticFeedback : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Survival Score Hero */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "16px 20px",
+        padding: "12px 16px",
         background: `${scoreColor}08`,
         border: `1px solid ${scoreColor}20`,
-        borderRadius: 12,
+        borderRadius: 10,
       }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Survival Score</div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}<span style={{ fontSize: 16, opacity: 0.5 }}>/100</span></div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Survival Score</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}<span style={{ fontSize: 14, opacity: 0.5 }}>/100</span></div>
         </div>
         <VerdictBadge value={result.verdictLabel || "Review Complete"} />
       </div>
 
       {/* Board Dialogue */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <h4 style={subHeaderStyle}>The Shadow Board Take</h4>
         {dialogue.map((d: any, i: number) => (
-          <div key={i} style={{ padding: "12px", background: "var(--glass-bg)", borderRadius: 10, borderLeft: `3px solid ${i === 0 ? '#E04848' : i === 1 ? '#5A6E8C' : '#5A8C6E'}` }}>
-             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{d.role}</div>
-             <p style={{ fontSize: 12, color: "var(--text-soft)", fontStyle: "italic", marginBottom: 6 }}>&ldquo;{d.thought}&rdquo;</p>
-             <p style={{ fontSize: 12, color: "#E04848", fontWeight: 600 }}>Honesty: {d.brutalHonesty}</p>
+          <div key={i} style={{ padding: "10px", background: "var(--glass-bg)", borderRadius: 8, borderLeft: `3px solid ${i === 0 ? '#E04848' : i === 1 ? '#5A6E8C' : '#5A8C6E'}` }}>
+             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text)", marginBottom: 3 }}>{d.role}</div>
+             <p style={{ fontSize: 11, color: "var(--text-soft)", fontStyle: "italic", marginBottom: 4 }}>&ldquo;{d.thought}&rdquo;</p>
+             <p style={{ fontSize: 11, color: "#E04848", fontWeight: 600 }}>Honesty: {d.brutalHonesty}</p>
              {d.moduleEvidence && d.moduleEvidence !== 'Evidence pending.' && (
-               <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Evidence: {d.moduleEvidence}</p>
+               <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}>Evidence: {d.moduleEvidence}</p>
              )}
              {d.fixThisThisWeek && d.fixThisThisWeek !== 'Weekly action pending.' && (
-               <div style={{ marginTop: 6, padding: "6px 10px", background: "#16a34a10", border: "1px solid #16a34a20", borderRadius: 6 }}>
-                 <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.04em" }}>Fix This Week: </span>
-                 <span style={{ fontSize: 11, color: "var(--text-soft)" }}>{d.fixThisThisWeek}</span>
+               <div style={{ marginTop: 4, padding: "4px 8px", background: "#16a34a10", border: "1px solid #16a34a20", borderRadius: 6 }}>
+                 <span style={{ fontSize: 9, fontWeight: 700, color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.04em" }}>Fix This Week: </span>
+                 <span style={{ fontSize: 10, color: "var(--text-soft)" }}>{d.fixThisThisWeek}</span>
                </div>
              )}
           </div>
@@ -990,36 +990,37 @@ function ShadowBoardDisplay({ result }: { result: Record<string, any> }) {
       </div>
 
       {/* Strategic Pivots */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         <h4 style={subHeaderStyle}>Strategic Pivots</h4>
         {pivots.map((p: any, i: number) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4, padding: "10px", border: "1px solid var(--border)", borderRadius: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#999", textDecoration: "line-through" }}>{p.currentPath}</span>
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "8px", border: "1px solid var(--border)", borderRadius: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#999", textDecoration: "line-through" }}>{p.currentPath}</span>
               <span style={{ color: "var(--muted)" }}>→</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{p.betterPath}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{p.betterPath}</span>
             </div>
-            <p style={{ fontSize: 11, color: "var(--muted)" }}>{p.rationale}</p>
+            <p style={{ fontSize: 10, color: "var(--muted)" }}>{p.rationale}</p>
           </div>
         ))}
       </div>
 
       {/* Synthetic Feedback */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         <h4 style={subHeaderStyle}>Silicon Pulse (Synthetic Feedback)</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
           {feedback.map((f: any, i: number) => (
-            <div key={i} style={{ padding: "10px", background: "var(--sidebar)", borderRadius: 8, fontSize: 11 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <div key={i} style={{ padding: "8px", background: "var(--sidebar)", borderRadius: 6, fontSize: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                 <span style={{ fontWeight: 700, color: "var(--text)" }}>{f.persona}</span>
                 <span style={{ 
                   color: f.sentiment === 'positive' ? '#16a34a' : f.sentiment === 'negative' ? '#dc2626' : '#d97706',
                   fontWeight: 800,
-                  textTransform: "uppercase"
+                  textTransform: "uppercase",
+                  fontSize: 8
                 }}>{f.sentiment}</span>
               </div>
-              <p style={{ color: "var(--text-soft)", fontStyle: "italic" }}>&ldquo;{f.quote}&rdquo;</p>
-              <div style={{ marginTop: 6, color: "#dc2626", fontWeight: 600 }}>Flaw: {f.criticalFlaw}</div>
+              <p style={{ color: "var(--text-soft)", fontStyle: "italic", marginBottom: 3 }}>&ldquo;{f.quote}&rdquo;</p>
+              <div style={{ marginTop: 3, color: "#dc2626", fontWeight: 600, fontSize: 9 }}>Flaw: {f.criticalFlaw}</div>
             </div>
           ))}
         </div>
@@ -1304,16 +1305,16 @@ function MetricTile({ label, value, accent }: { label: string; value: string; ac
   return (
     <div
       style={{
-        padding: "12px 14px",
-        borderRadius: 12,
+        padding: "10px 12px",
+        borderRadius: 10,
         border: "1px solid var(--border)",
         background: "var(--glass-bg)",
       }}
     >
-      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         {label}
       </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: accent, marginTop: 6 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: accent, marginTop: 4 }}>
         {value}
       </div>
     </div>
@@ -1331,8 +1332,8 @@ function InvestorKitDisplay({ result, onOpenReport }: { result: Record<string, a
   const summary = typeof result.executiveSummary === "string" ? result.executiveSummary : "";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
         <MetricTile label="Deck Slides" value={slides.length ? String(slides.length) : "Drafting"} accent={ACCENT} />
         <MetricTile label="Suggested Raise" value={ask.suggestedRaise || "Pending"} accent={ACCENT} />
         <MetricTile label="Data Room" value={dataRoomSections.length ? `${dataRoomSections.length} sections` : "Pending"} accent={ACCENT} />
@@ -1340,13 +1341,13 @@ function InvestorKitDisplay({ result, onOpenReport }: { result: Record<string, a
 
       {summary && (
         <div style={{
-          padding: "12px 14px",
+          padding: "10px 12px",
           border: "1px solid var(--border)",
-          borderRadius: 12,
+          borderRadius: 10,
           background: "var(--glass-bg)",
           color: "var(--text-soft)",
-          fontSize: 13,
-          lineHeight: 1.65,
+          fontSize: 12,
+          lineHeight: 1.5,
         }}>
           {summary.slice(0, 280)}
           {summary.length > 280 ? "..." : ""}
@@ -1354,22 +1355,22 @@ function InvestorKitDisplay({ result, onOpenReport }: { result: Record<string, a
       )}
 
       {slides.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <h4 style={subHeaderStyle}>Pitch Deck Outline</h4>
           {slides.slice(0, 4).map((slide: any, index: number) => (
             <div
               key={index}
               style={{
-                padding: "10px 12px",
+                padding: "8px 10px",
                 border: "1px solid var(--border)",
-                borderRadius: 10,
+                borderRadius: 8,
                 background: "var(--sidebar)",
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>
                 {slide.slide || `Slide ${index + 1}`}
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.55, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: "var(--text-soft)", lineHeight: 1.5, marginTop: 3 }}>
                 {slide.content || "Content pending."}
               </div>
             </div>
@@ -1378,10 +1379,10 @@ function InvestorKitDisplay({ result, onOpenReport }: { result: Record<string, a
       )}
 
       {(milestones.length > 0 || dataRoomSections.length > 0) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <div>
             <h4 style={subHeaderStyle}>Milestones</h4>
-            <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "var(--text-soft)", fontSize: 12, lineHeight: 1.7 }}>
+            <ul style={{ margin: "6px 0 0", paddingLeft: 16, color: "var(--text-soft)", fontSize: 11, lineHeight: 1.6 }}>
               {milestones.slice(0, 4).map((item: string, index: number) => (
                 <li key={index}>{item}</li>
               ))}
@@ -1389,7 +1390,7 @@ function InvestorKitDisplay({ result, onOpenReport }: { result: Record<string, a
           </div>
           <div>
             <h4 style={subHeaderStyle}>Data Room</h4>
-            <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "var(--text-soft)", fontSize: 12, lineHeight: 1.7 }}>
+            <ul style={{ margin: "6px 0 0", paddingLeft: 16, color: "var(--text-soft)", fontSize: 11, lineHeight: 1.6 }}>
               {dataRoomSections.slice(0, 4).map((item: string, index: number) => (
                 <li key={index}>{item}</li>
               ))}
@@ -1436,11 +1437,11 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Summary */}
       {result.summary && (
         <div style={{
-          padding: "14px 16px",
+          padding: "12px 14px",
           background: `${ACCENT}08`,
           border: `1px solid ${ACCENT}20`,
           borderRadius: 12,
@@ -1459,17 +1460,17 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
 
       {/* Channel Strip */}
       {channels.length > 0 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {channels.map((ch: any, i: number) => (
             <div key={i} style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "5px 10px",
+              gap: 5,
+              padding: "4px 8px",
               background: "var(--glass-bg)",
               border: "1px solid var(--border)",
               borderRadius: 8,
-              fontSize: 11,
+              fontSize: 10,
             }}>
               <span style={{ fontWeight: 700, color: "var(--text)" }}>{ch.name}</span>
               <span style={{ color: "var(--muted)" }}>{ch.totalPosts} posts</span>
@@ -1480,41 +1481,41 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
 
       {/* Weekly Goals */}
       {(result.weekOneGoal || result.weekTwoGoal) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {result.weekOneGoal && (
             <div style={{
-              padding: "10px 12px",
+              padding: "8px 10px",
               background: "#5A8C6E10",
               border: "1px solid #5A8C6E20",
-              borderRadius: 10,
+              borderRadius: 8,
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#5A8C6E", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Week 1 Goal</div>
-              <div style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.5 }}>{result.weekOneGoal}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#5A8C6E", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Week 1 Goal</div>
+              <div style={{ fontSize: 11, color: "var(--text-soft)", lineHeight: 1.4 }}>{result.weekOneGoal}</div>
             </div>
           )}
           {result.weekTwoGoal && (
             <div style={{
-              padding: "10px 12px",
+              padding: "8px 10px",
               background: `${ACCENT}10`,
               border: `1px solid ${ACCENT}20`,
-              borderRadius: 10,
+              borderRadius: 8,
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: ACCENT, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Week 2 Goal</div>
-              <div style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.5 }}>{result.weekTwoGoal}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: ACCENT, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Week 2 Goal</div>
+              <div style={{ fontSize: 11, color: "var(--text-soft)", lineHeight: 1.4 }}>{result.weekTwoGoal}</div>
             </div>
           )}
         </div>
       )}
 
       {/* 14-Day Calendar */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <h4 style={{
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 700,
           color: "var(--text)",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
-          marginBottom: 4,
+          marginBottom: 2,
           opacity: 0.8,
         }}>14-Day Execution Calendar</h4>
 
@@ -1526,7 +1527,7 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
           return (
             <div key={i} style={{
               border: "1px solid var(--border)",
-              borderRadius: 10,
+              borderRadius: 8,
               overflow: "hidden",
               background: isExpanded ? "var(--glass-bg)" : "transparent",
               transition: "background 0.2s",
@@ -1538,11 +1539,11 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
                   display: "flex",
                   alignItems: "center",
                   width: "100%",
-                  padding: "10px 14px",
+                  padding: "8px 12px",
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  gap: 10,
+                  gap: 8,
                 }}
               >
                 <span style={{
@@ -1593,7 +1594,7 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
 
               {/* Expanded Tasks */}
               {isExpanded && (
-                <div style={{ padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ height: 1, background: "var(--border)" }} />
 
                   {tasks.map((task: any, ti: number) => {
@@ -1602,29 +1603,29 @@ function LaunchAutopilotDisplay({ result }: { result: Record<string, any> }) {
 
                     return (
                       <div key={ti} style={{
-                        padding: "10px 12px",
+                        padding: "8px 10px",
                         border: "1px solid var(--border)",
                         borderRadius: 8,
                         borderLeft: `3px solid ${p.color}`,
                         display: "flex",
                         flexDirection: "column",
-                        gap: 8,
+                        gap: 6,
                       }}>
                         {/* Task Header */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "var(--font-mono, monospace)", fontWeight: 600 }}>{task.time}</span>
                             <span style={{
-                              padding: "2px 8px",
+                              padding: "2px 6px",
                               background: `${ACCENT}14`,
                               color: ACCENT,
                               borderRadius: 4,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: 700,
                             }}>
                               {task.channel}
                             </span>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text)" }}>{task.action}</span>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text)" }}>{task.action}</span>
                           </div>
                           <span style={{
                             padding: "2px 6px",
@@ -1794,20 +1795,20 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
   const rc = readinessConfig[verdict.readiness] || readinessConfig['almost-ready'];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
       {/* ── Verdict Badge ──────────────────────────────────────────── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "16px 20px",
+        padding: "12px 16px",
         background: rc.bg,
         border: `1px solid ${rc.color}20`,
-        borderRadius: 12,
+        borderRadius: 10,
       }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>MVP Readiness</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: rc.color, marginTop: 4, textTransform: "uppercase" }}>{(verdict.readiness || 'almost-ready').replace(/-/g, ' ')}</div>
-          {verdict.summary && <div style={{ fontSize: 12, color: "var(--text-soft)", marginTop: 6, lineHeight: 1.5 }}>{verdict.summary}</div>}
+          <div style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>MVP Readiness</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: rc.color, marginTop: 3, textTransform: "uppercase" }}>{(verdict.readiness || 'almost-ready').replace(/-/g, ' ')}</div>
+          {verdict.summary && <div style={{ fontSize: 11, color: "var(--text-soft)\", marginTop: 4, lineHeight: 1.4 }}>{verdict.summary}</div>}
         </div>
         <span style={{
           display: "inline-flex", alignItems: "center", gap: 6,
@@ -1822,8 +1823,8 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
       </div>
 
       {/* ── Kill List ──────────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
           <div style={{ width: 20, height: 20, borderRadius: "50%", background: `${ACCENT}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </div>
@@ -1880,14 +1881,14 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
       </div>
 
       {/* ── Skeleton MVP ───────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <h4 style={scalpelSubHeader}>Skeleton MVP</h4>
 
         {/* One-liner */}
         {skeleton.oneLiner && (
           <div style={{
-            padding: "14px 16px", background: `${ACCENT}08`, border: `1px solid ${ACCENT}15`,
-            borderRadius: 10, fontSize: 14, fontWeight: 600, color: "var(--text)", lineHeight: 1.5,
+            padding: "12px 14px", background: `${ACCENT}08`, border: `1px solid ${ACCENT}15`,
+            borderRadius: 8, fontSize: 13, fontWeight: 600, color: "var(--text)", lineHeight: 1.4,
           }}>
             {skeleton.oneLiner}
           </div>
@@ -1896,25 +1897,25 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
         {/* Core Hypothesis callout */}
         {skeleton.coreHypothesis && (
           <div style={{
-            padding: "10px 14px", background: "var(--glass-bg)", borderRadius: 8,
-            borderLeft: `3px solid #d97706`, fontSize: 12, color: "var(--text-soft)", lineHeight: 1.5,
+            padding: "8px 12px", background: "var(--glass-bg)", borderRadius: 6,
+            borderLeft: `3px solid #d97706`, fontSize: 11, color: "var(--text-soft)", lineHeight: 1.4,
           }}>
-            <span style={{ fontWeight: 700, color: "#d97706", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Core Hypothesis</span>
-            <div style={{ marginTop: 4 }}>{skeleton.coreHypothesis}</div>
+            <span style={{ fontWeight: 700, color: "#d97706", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.05em" }}>Core Hypothesis</span>
+            <div style={{ marginTop: 2 }}>{skeleton.coreHypothesis}</div>
           </div>
         )}
 
         {/* Feature cards */}
         {features.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: features.length > 2 ? "1fr 1fr" : "1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: features.length > 2 ? "1fr 1fr" : "1fr", gap: 6 }}>
             {features.map((f: any, i: number) => (
               <div key={i} style={{
-                padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 10,
-                display: "flex", flexDirection: "column", gap: 4,
+                padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8,
+                display: "flex", flexDirection: "column", gap: 3,
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{f.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-soft)", lineHeight: 1.5 }}>{f.description}</div>
-                <div style={{ fontSize: 10, color: "#5A8C6E", fontWeight: 600, marginTop: 2 }}>{f.whyIncluded}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{f.name}</div>
+                <div style={{ fontSize: 10, color: "var(--text-soft)", lineHeight: 1.4 }}>{f.description}</div>
+                <div style={{ fontSize: 9, color: "#5A8C6E", fontWeight: 600, marginTop: 1 }}>{f.whyIncluded}</div>
               </div>
             ))}
           </div>
@@ -1945,7 +1946,7 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
       </div>
 
       {/* ── Weekend Spec ───────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h4 style={scalpelSubHeader}>Build This Weekend</h4>
           {spec.totalHours && (
@@ -2079,7 +2080,7 @@ function MVPScalpelDisplay({ result }: { result: Record<string, any> }) {
         {/* Total days hero */}
         {ttfd.estimatedDays && (
           <div style={{
-            display: "flex", alignItems: "center", gap: 16,
+            display: "flex", alignItems: "center", gap: 10,
             padding: "14px 18px", background: "#d9770608", border: "1px solid #d9770620",
             borderRadius: 12,
           }}>

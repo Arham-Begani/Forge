@@ -15,16 +15,16 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-    title: 'Forze - Autonomous Venture Orchestrator',
-    description: 'Transform a raw business concept into a production-ready, market-validated venture in minutes with AI-powered agents.',
-    keywords: ['startup', 'AI', 'venture', 'business', 'automation'],
+    title: 'Forze - Validate Startup Ideas and Build Investor-Ready Ventures',
+    description: 'Forze turns a raw startup idea into research, feasibility analysis, a live validation page, and investor-ready materials in minutes.',
+    keywords: ['startup validation', 'AI', 'venture', 'feasibility study', 'investor kit', 'market research'],
     authors: [{ name: 'Forze' }],
     icons: {
         icon: '/favicon.png',
     },
     openGraph: {
-        title: 'Forze - Build Smarter AI Features',
-        description: 'Autonomous Venture Orchestrator for turning business concepts into production-ready ventures.',
+        title: 'Forze - From Raw Idea to Validated Venture',
+        description: 'Research the market, pressure-test feasibility, launch a validation page, and package the story for investors.',
         type: 'website',
         url: process.env.NEXT_PUBLIC_BASE_URL || 'https://forze.in',
         images: [
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Forze - Build Smarter AI Features',
-        description: 'Autonomous Venture Orchestrator for turning business concepts into production-ready ventures.',
+        title: 'Forze - From Raw Idea to Validated Venture',
+        description: 'Research the market, pressure-test feasibility, launch a validation page, and package the story for investors.',
         images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://forze.in'}/api/og`],
     },
 }

@@ -3,74 +3,74 @@
 import { useEffect, useRef, useState } from 'react'
 
 const FEATURED = {
-  icon: '⬡',
+  icon: 'FL',
   accent: '#C4975A',
   title: 'Full Launch',
-  tagline: 'Everything. 5 minutes. One price.',
-  description: 'Research + Branding + Landing Page + Financials. Everything talks to everything else. Your brand matches your market. Your copy uses your brand voice. Your numbers are real.',
+  tagline: 'Validation, launch assets, and investor context in one run.',
+  description: 'Research informs your positioning. Positioning informs the landing page. Feasibility pressure-tests the numbers. Investor Kit packages the story. Full Launch keeps the chain intact so you are not pitching disconnected AI fragments.',
   subAgents: [
-    { icon: '◎', label: 'Research', accent: '#5A8C6E' },
-    { icon: '◇', label: 'Branding', accent: '#5A6E8C' },
-    { icon: '▣', label: 'Landing Page', accent: '#8C7A5A' },
-    { icon: '◈', label: 'Financials', accent: '#7A5A8C' },
+    { icon: 'R', label: 'Research', accent: '#5A8C6E' },
+    { icon: 'B', label: 'Branding', accent: '#5A6E8C' },
+    { icon: 'L', label: 'Landing Page', accent: '#8C7A5A' },
+    { icon: 'F', label: 'Feasibility', accent: '#7A5A8C' },
   ],
 }
 
 const AGENTS = [
   {
-    icon: '◎',
+    icon: 'R',
     accent: '#5A8C6E',
     title: 'Research',
-    description: 'Market size. Competition. Opportunity score.',
-    outputs: ['TAM / SAM / SOM', 'Top 5 competitors + gaps', 'Risk scorecard'],
+    description: 'Validate demand, map the market, and identify where the opening really is.',
+    outputs: ['TAM / SAM / SOM', 'Top competitors + gaps', 'Recommended next test'],
   },
   {
-    icon: '◇',
+    icon: 'B',
     accent: '#5A6E8C',
     title: 'Branding',
-    description: '5 names. Colors. Fonts. Brand voice.',
-    outputs: ['Names + positioning', 'Color + typography guide', 'Brand voice specs'],
+    description: 'Create positioning and identity that actually match the market you are entering.',
+    outputs: ['Names + positioning', 'Color + typography guide', 'Brand voice system'],
   },
   {
-    icon: '▲',
+    icon: 'M',
     accent: '#8C5A7A',
     title: 'Marketing',
-    description: '30-day launch plan. Copy. Social strategy.',
-    outputs: ['GTM playbook', '90 ready-to-post captions', 'Email launch sequence'],
+    description: 'Turn validated insight into a launch plan your market can actually respond to.',
+    outputs: ['GTM playbook', 'Launch content system', 'Email launch sequence'],
   },
   {
-    icon: '▣',
+    icon: 'L',
     accent: '#8C7A5A',
     title: 'Landing Page',
-    description: 'Live URL. Conversion-optimized. Lead capture ready.',
-    outputs: ['Live deployed URL', 'Full page copy', 'Lead capture wired'],
+    description: 'Deploy a live validation page that turns positioning into an actual market test.',
+    outputs: ['Live deployed URL', 'Full page copy', 'Lead capture ready'],
   },
   {
-    icon: '◈',
+    icon: 'F',
     accent: '#7A5A8C',
-    title: 'Financial Model',
-    description: '3-year projections. Unit economics. GO/NO-GO.',
-    outputs: ['Revenue forecast', 'Profitability timeline', 'Feasibility verdict'],
+    title: 'Feasibility',
+    description: 'Stress-test the opportunity with numbers, assumptions, and a clear decision.',
+    outputs: ['Revenue forecast', 'Profitability timeline', 'GO/NO-GO verdict'],
   },
   {
-    icon: '◉',
+    icon: 'C',
     accent: '#6B8F71',
     title: 'Advisor',
-    description: 'Q&A. Strategic guidance. Cross-module insights.',
+    description: 'Ask follow-up questions across every output without losing venture context.',
     outputs: ['Contextual answers', 'Strategic pivots', 'Refinement ideas'],
   },
   {
-    icon: '⚔',
+    icon: 'SB',
     accent: '#E04848',
     title: 'Reality Check',
-    description: 'Your assumptions stress-tested by experts. Survival score.',
-    outputs: ['Survival Score (0–100)', 'Critical blind spots', 'Pivot recommendations'],
+    description: 'Pressure-test assumptions before they become expensive mistakes.',
+    outputs: ['Survival Score (0-100)', 'Critical blind spots', 'Pivot recommendations'],
   },
   {
-    icon: '✂',
+    icon: 'MVP',
     accent: '#C45A5A',
     title: 'MVP Scope',
-    description: 'What can you ship in 48 hours to test the core idea?',
+    description: 'Cut the product down to the smallest version that can validate the thesis.',
     outputs: ['Must-have features', 'Weekend sprint spec', 'First success metric'],
   },
 ]
@@ -95,7 +95,6 @@ export function AgentGrid() {
       maxWidth: '1200px',
       margin: '0 auto',
     }}>
-      {/* Header */}
       <div style={{
         textAlign: 'center',
         marginBottom: '56px',
@@ -122,21 +121,20 @@ export function AgentGrid() {
           margin: '0 0 16px',
           letterSpacing: '-0.02em',
         }}>
-          The 8 Agents
+          The Validation Stack
         </h2>
         <p style={{
           fontFamily: 'var(--font-dm-sans), sans-serif',
           fontSize: '17px',
           color: 'var(--text-soft)',
-          maxWidth: '480px',
+          maxWidth: '560px',
           margin: '0 auto',
           lineHeight: 1.6,
         }}>
-          Each specialized. All working together.
+          Each module does one hard job. Together they turn conviction into evidence.
         </p>
       </div>
 
-      {/* Featured Full Launch card */}
       <div
         style={{
           borderRadius: 'var(--radius-xl)',
@@ -164,7 +162,6 @@ export function AgentGrid() {
           e.currentTarget.style.boxShadow = 'none'
         }}
       >
-        {/* Scan-line sweep */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -187,14 +184,16 @@ export function AgentGrid() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '26px',
+              fontSize: '16px',
+              fontWeight: 700,
               color: FEATURED.accent,
               flexShrink: 0,
+              fontFamily: 'var(--font-jetbrains-mono), monospace',
             }}>
               {FEATURED.icon}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{
                   fontFamily: 'var(--font-dm-sans), sans-serif',
                   fontSize: '22px',
@@ -234,13 +233,12 @@ export function AgentGrid() {
             color: 'var(--text-soft)',
             margin: 0,
             lineHeight: 1.65,
-            maxWidth: '560px',
+            maxWidth: '620px',
           }}>
             {FEATURED.description}
           </p>
         </div>
 
-        {/* Sub-agents */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -248,7 +246,7 @@ export function AgentGrid() {
           flexShrink: 0,
         }}>
           {FEATURED.subAgents.map((sub, i) => (
-            <div key={i} style={{
+            <div key={sub.label} style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -260,7 +258,16 @@ export function AgentGrid() {
               transform: visible ? 'translateX(0)' : 'translateX(16px)',
               transition: `opacity 0.5s ${0.3 + i * 0.1}s ease, transform 0.5s ${0.3 + i * 0.1}s ease`,
             }}>
-              <span style={{ fontSize: '14px', color: sub.accent }}>{sub.icon}</span>
+              <span style={{
+                fontSize: '12px',
+                color: sub.accent,
+                fontWeight: 700,
+                minWidth: '18px',
+                textAlign: 'center',
+                fontFamily: 'var(--font-jetbrains-mono), monospace',
+              }}>
+                {sub.icon}
+              </span>
               <span style={{
                 fontFamily: 'var(--font-dm-sans), sans-serif',
                 fontSize: '13px',
@@ -275,7 +282,6 @@ export function AgentGrid() {
         </div>
       </div>
 
-      {/* Agent grid */}
       <div className="agent-grid-cards" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
@@ -283,7 +289,7 @@ export function AgentGrid() {
       }}>
         {AGENTS.map((agent, i) => (
           <div
-            key={i}
+            key={agent.title}
             onMouseEnter={() => setHoveredAgent(i)}
             onMouseLeave={() => setHoveredAgent(null)}
             style={{
@@ -302,11 +308,11 @@ export function AgentGrid() {
                 : 'translateY(32px) scale(1)',
               transition: `opacity 0.5s ${0.15 + i * 0.05}s ease, transform 0.5s ${0.15 + i * 0.05}s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, border-color 0.2s ease`,
               boxShadow: hoveredAgent === i ? `0 16px 40px -8px ${agent.accent}30` : 'none',
-              borderLeft: `3px solid ${hoveredAgent === i ? agent.accent : agent.accent + '80'}`,
+              borderLeft: `3px solid ${hoveredAgent === i ? agent.accent : `${agent.accent}80`}`,
               cursor: 'default',
+              position: 'relative',
             }}
           >
-            {/* Pulsing activity dot */}
             <div style={{
               position: 'absolute',
               top: '12px',
@@ -320,7 +326,16 @@ export function AgentGrid() {
             }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px', color: agent.accent }}>{agent.icon}</span>
+                <span style={{
+                  fontSize: '12px',
+                  color: agent.accent,
+                  fontWeight: 700,
+                  minWidth: '26px',
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-jetbrains-mono), monospace',
+                }}>
+                  {agent.icon}
+                </span>
                 <span style={{
                   fontFamily: 'var(--font-dm-sans), sans-serif',
                   fontSize: '16px',
@@ -355,7 +370,6 @@ export function AgentGrid() {
               {agent.description}
             </p>
 
-            {/* Outputs — always shown */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -363,8 +377,8 @@ export function AgentGrid() {
               paddingTop: '8px',
               borderTop: '1px solid var(--border)',
             }}>
-              {agent.outputs.map((out, j) => (
-                <div key={j} style={{
+              {agent.outputs.map((out) => (
+                <div key={out} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '7px',
@@ -372,7 +386,7 @@ export function AgentGrid() {
                   color: 'var(--muted)',
                   fontFamily: 'var(--font-dm-sans), sans-serif',
                 }}>
-                  <span style={{ color: agent.accent, fontSize: '10px', flexShrink: 0 }}>▸</span>
+                  <span style={{ color: agent.accent, fontSize: '10px', flexShrink: 0 }}>•</span>
                   {out}
                 </div>
               ))}

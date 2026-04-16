@@ -7,19 +7,19 @@ import { BILLING_PLANS, type PlanSlug } from '@/lib/billing'
 const PLAN_ORDER: PlanSlug[] = ['free', 'starter', 'builder', 'pro', 'studio']
 
 const PLAN_DESCRIPTIONS: Record<PlanSlug, string> = {
-  free: 'Try Forze with no commitment.',
-  starter: 'Validate ideas with key agents.',
-  builder: 'Full toolkit for serious builders.',
-  pro: 'Maximum velocity for ambitious founders.',
-  studio: 'Unlimited power for studios and teams.',
+  free: 'Pressure-test one venture with the full stack.',
+  starter: 'Rerun research and feasibility with more room to iterate.',
+  builder: 'Validate multiple ventures and refine the strongest one.',
+  pro: 'Run serious founder diligence with enough credits for repetition.',
+  studio: 'Portfolio-level validation for teams and venture studios.',
 }
 
 const PLAN_HIGHLIGHTS: Record<PlanSlug, string[]> = {
-  free: ['1 venture', '25 credits / month', 'All modules included', 'Community support'],
-  starter: ['2 ventures', '40 credits / month', 'All modules included', 'Email support'],
-  builder: ['5 ventures', '120 credits / month', 'All modules included', 'Priority support'],
-  pro: ['15 ventures', '400 credits / month', 'All modules included', 'Dedicated support'],
-  studio: ['Unlimited ventures', '1,500 credits / month', 'All modules included', 'White-glove support'],
+  free: ['1 validation workspace', '25 credits / month', 'All modules included', 'Community support'],
+  starter: ['2 ventures', '40 credits / month', 'More research + feasibility reruns', 'Email support'],
+  builder: ['5 ventures', '120 credits / month', 'Full validation and launch coverage', 'Priority support'],
+  pro: ['15 ventures', '400 credits / month', 'Investor kit and rerun-heavy workflows', 'Dedicated support'],
+  studio: ['Unlimited ventures', '1,500 credits / month', 'Portfolio-wide validation ops', 'White-glove support'],
 }
 
 export function PricingSection() {
@@ -53,10 +53,10 @@ export function PricingSection() {
         }}>
           <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--accent)', textTransform: 'uppercase', margin: '0 0 12px' }}>Pricing</p>
           <h2 style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, color: 'var(--text)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
-            Simple pricing
+            Pricing for validation velocity
           </h2>
           <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '17px', color: 'var(--text-soft)', maxWidth: '400px', margin: '0 auto 28px', lineHeight: 1.6 }}>
-            Start free. Scale when you are ready.
+            Start with one venture, then scale when you need more reruns, more ideas, and more investor prep.
           </p>
 
           {/* Billing toggle */}
@@ -310,7 +310,7 @@ export function PricingSection() {
           opacity: visible ? 1 : 0,
           transition: 'opacity 0.6s 0.4s ease',
         }}>
-          Start free with 25 monthly credits. No credit card required.
+          Start free with 25 monthly credits and validate one venture before you spend anything on build or consultants.
         </p>
       </div>
     </section>

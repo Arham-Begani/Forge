@@ -4,23 +4,24 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const CYCLING_PHRASES = [
+  'evidence before you build',
   'validation in minutes',
-  'a real market analysis',
-  'a landing page live',
-  'your investor pitch ready',
+  'a real go-to-market read',
+  'a live validation page',
+  'your investor story ready',
 ]
 
 const STREAM_LINES = [
-  { prefix: '◎ Research', text: 'Market analysis: TAM $2.4B, competition gaps identified...', delay: 0 },
-  { prefix: '◇ Brand', text: 'Generated names: Vela, Arclo, Nuvro with color palette...', delay: 800 },
-  { prefix: '◈ Financial', text: '3-year projection: Year 1 CAC $40 · LTV $850 · Path to profitability...', delay: 1600 },
-  { prefix: '▣ Landing', text: 'Live page deployed · Hero copy written · Lead capture ready...', delay: 2400 },
+  { prefix: 'Research', text: 'Demand mapped, TAM/SAM/SOM sized, competitive gaps identified...', delay: 0 },
+  { prefix: 'Feasibility', text: 'GO/NO-GO verdict drafted with CAC, LTV, margin, and risk pressure tests...', delay: 800 },
+  { prefix: 'Landing', text: 'Validation page live with positioning, proof, and lead capture ready...', delay: 1600 },
+  { prefix: 'Investor Kit', text: 'Executive summary, memo, and deck outline packaged from existing outputs...', delay: 2400 },
 ]
 
 const STAT_CHIPS = [
-  { icon: '⬡', label: 'Complete in minutes' },
-  { icon: '◎', label: '95% DIY founders use it' },
-  { icon: '◈', label: 'No expertise needed' },
+  { icon: '01', label: 'Proof in minutes' },
+  { icon: '02', label: 'GO/NO-GO clarity' },
+  { icon: '03', label: 'Investor-ready outputs' },
 ]
 
 export function Hero() {
@@ -39,7 +40,6 @@ export function Hero() {
       .catch(() => setSession(null))
   }, [])
 
-  // Typewriter effect
   useEffect(() => {
     const target = CYCLING_PHRASES[phraseIdx]
     let timeout: ReturnType<typeof setTimeout>
@@ -58,7 +58,6 @@ export function Hero() {
     return () => clearTimeout(timeout)
   }, [displayed, isDeleting, phraseIdx])
 
-  // Stream lines — play once then loop every 9s
   useEffect(() => {
     const play = () => {
       setStreamVisible([false, false, false, false])
@@ -72,12 +71,12 @@ export function Hero() {
         }, line.delay + 400)
       })
     }
+
     play()
     const id = setInterval(play, 9000)
     return () => clearInterval(id)
   }, [])
 
-  // Mouse parallax for blobs
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       setMouse({
@@ -102,7 +101,6 @@ export function Hero() {
       padding: '96px 24px 64px',
       overflow: 'hidden',
     }}>
-      {/* Ambient blobs */}
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -135,7 +133,6 @@ export function Hero() {
           transition: 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1)',
           willChange: 'transform',
         }} />
-        {/* Subtle dot grid */}
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -149,7 +146,7 @@ export function Hero() {
         position: 'relative',
         willChange: 'transform',
         zIndex: 1,
-        maxWidth: '860px',
+        maxWidth: '920px',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -157,7 +154,6 @@ export function Hero() {
         textAlign: 'center',
         gap: '28px',
       }}>
-        {/* Headline */}
         <div style={{ animation: 'fade-in-scale 0.7s 0.05s ease both' }}>
           <h1 style={{
             fontFamily: 'var(--font-dm-sans), sans-serif',
@@ -176,7 +172,7 @@ export function Hero() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               display: 'inline-block',
-              minWidth: 'min(320px, 70vw)',
+              minWidth: 'min(420px, 82vw)',
             }}>
               {displayed}
               <span style={{
@@ -192,20 +188,18 @@ export function Hero() {
           </h1>
         </div>
 
-        {/* Subheadline */}
         <p style={{
           fontFamily: 'var(--font-dm-sans), sans-serif',
           fontSize: 'clamp(16px, 2vw, 19px)',
           lineHeight: 1.65,
           color: 'var(--text-soft)',
-          maxWidth: '600px',
+          maxWidth: '720px',
           margin: 0,
           animation: 'fade-in-scale 0.7s 0.2s ease both',
         }}>
-          Market research, brand identity, landing page, and financial model. In 5 minutes. No expertise needed.
+          Forze turns a raw idea into market research, feasibility analysis, a live landing page, and investor-ready materials in minutes. Everything stays connected, so your validation story is coherent from first prompt to first meeting.
         </p>
 
-        {/* CTA row */}
         <div style={{
           display: 'flex',
           gap: '12px',
@@ -238,7 +232,7 @@ export function Hero() {
               e.currentTarget.style.boxShadow = 'var(--shadow-accent)'
             }}
           >
-            {isLoggedIn ? 'Continue →' : 'Start Now (Free) →'}
+            {isLoggedIn ? 'Open Dashboard ->' : 'Start Validating Free ->'}
           </button>
           <button
             onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
@@ -267,7 +261,6 @@ export function Hero() {
           </button>
         </div>
 
-        {/* Social proof strip */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -300,14 +293,13 @@ export function Hero() {
             color: 'var(--muted)',
             fontFamily: 'var(--font-dm-sans), sans-serif',
           }}>
-            <strong style={{ color: 'var(--text-soft)' }}>20+ users</strong> validate ideas here
+            <strong style={{ color: 'var(--text-soft)' }}>20+ founders</strong> use Forze to pressure-test ideas before they build
           </span>
         </div>
 
-        {/* Demo terminal card */}
         <div style={{
           width: '100%',
-          maxWidth: '720px',
+          maxWidth: '760px',
           borderRadius: 'var(--radius-xl)',
           background: 'var(--glass-bg)',
           backdropFilter: 'blur(var(--glass-blur))',
@@ -317,7 +309,6 @@ export function Hero() {
           overflow: 'hidden',
           animation: 'card-rise 0.8s 0.5s ease both',
         }}>
-          {/* Terminal header */}
           <div style={{
             padding: '14px 20px',
             borderBottom: '1px solid var(--border)',
@@ -338,7 +329,7 @@ export function Hero() {
               flex: 1,
               textAlign: 'center',
             }}>
-              Forze · Full Launch · Running
+              Forze · Full Launch Validation Run
             </span>
             <div style={{
               width: '8px',
@@ -349,7 +340,6 @@ export function Hero() {
             }} />
           </div>
 
-          {/* Stream output */}
           <div style={{
             padding: '20px 24px',
             display: 'flex',
@@ -372,6 +362,8 @@ export function Hero() {
                   color: 'var(--accent)',
                   flexShrink: 0,
                   paddingTop: '1px',
+                  minWidth: '88px',
+                  textAlign: 'left',
                 }}>
                   {line.prefix}
                 </span>
@@ -397,20 +389,21 @@ export function Hero() {
                   fontSize: '12px',
                   color: '#22c55e',
                   flexShrink: 0,
-                }}>✓ Done</span>
+                }}>
+                  Done
+                </span>
                 <span style={{
                   fontFamily: 'var(--font-jetbrains-mono), monospace',
                   fontSize: '13px',
                   color: 'var(--muted)',
                 }}>
-                  Venture package ready · 4m 12s
+                  Validation package ready · 4m 12s
                 </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Floating stat chips */}
         <div style={{
           display: 'flex',
           gap: '12px',
@@ -436,14 +429,13 @@ export function Hero() {
               animationDelay: `${i * 0.4}s`,
               fontFamily: 'var(--font-dm-sans), sans-serif',
             }}>
-              <span style={{ color: 'var(--accent)', fontSize: '15px' }}>{chip.icon}</span>
+              <span style={{ color: 'var(--accent)', fontSize: '12px', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{chip.icon}</span>
               {chip.label}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Bottom fade */}
       <div style={{
         position: 'absolute',
         bottom: 0,
@@ -455,7 +447,6 @@ export function Hero() {
         zIndex: 2,
       }} />
 
-      {/* Scroll indicator */}
       <button
         onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
         style={{

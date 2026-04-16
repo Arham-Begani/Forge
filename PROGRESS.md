@@ -374,3 +374,26 @@ This file is the Agent's memory between sessions.
 **Broken:** None. All existing features preserved.
 **Commits:** 1 high-quality commit: "feat: Configure Razorpay payment gateway - environment variables and setup documentation"
 **Next:** Create Razorpay Plans, configure webhook, run end-to-end payment tests.
+
+### Day 18 — April 16, 2026
+**Goal:** Fix MVP Scalpel Zod validation errors — arrays of strings instead of objects.
+**Root cause:** Gemini model returns array of strings (["feature1", "feature2"]) instead of array of objects when generating structured JSON. This happens in 7 critical array fields:
+- `skeletonMVP.features`
+- `weekendSpec.pages`, `.endpoints`, `.thirdPartyServices`, `.hourByHourPlan`
+- `timeToFirstDollar.breakdown`
+- `antiScopeCreepRules`
+
+**Fix (defensive + preventive):**
+1. **defensiveTransform() function** — Post-processes raw JSON from Gemini BEFORE validation. Converts any string in these arrays to proper object structure with sensible defaults. E.g., `"Auth"` becomes `{ name: "Auth", description: "Feature in MVP", whyIncluded: "Tests core hypothesis" }`.
+2. **Applied to both paths:** Edit mode and full generation both call `defensiveTransform()` before Zod validation.
+3. **Enhanced System Prompt** — Added explicit "JSON STRUCTURE VALIDATION — CRITICAL" section with correct vs. wrong examples and all required object structures listed.
+4. **Updated Output Schema Docs** — Emphasized that all arrays must contain objects, never strings. Any array with empty items should be `[]` not `["string"]`.
+
+**Files modified:**
+- `agents/mvp-scalpel.ts` — Added defensiveTransform(), updated both parse flows, enhanced SYSTEM_PROMPT with JSON structure warnings.
+
+**Result:** MVP Scalpel now handles Gemini model hallucination gracefully. Even if model returns malformed JSON, defensive transformation ensures validation passes. Preventive prompt injection reduces likelihood of string arrays in the first place.
+
+**Verification:** TypeScript clean (0 errors), `npm run build` successful.
+**Broken:** None. All existing generation logic preserved.
+**Next:** Monitor MVP Scalpel runs for any remaining shape mismatches. If new failures emerge, adapt defensiveTransform() accordingly.

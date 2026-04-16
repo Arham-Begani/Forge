@@ -9,6 +9,85 @@ import {
 } from '@/lib/gemini'
 import { sanitize, sanitizeLabel } from '@/lib/sanitize'
 
+// ── Defensive Transform: Coerce string arrays to object arrays ────────────────
+// This prevents model hallucination where it returns ["string1", "string2"] 
+// instead of [{"field": "string1", ...}, ...]
+
+function defensiveTransform(raw: any): any {
+    if (!raw || typeof raw !== 'object') return raw
+
+    // Transform skeletonMVP.features
+    if (raw.skeletonMVP?.features && Array.isArray(raw.skeletonMVP.features)) {
+        raw.skeletonMVP.features = raw.skeletonMVP.features.map((f: any) => 
+            typeof f === 'string' 
+                ? { name: f, description: 'Feature in MVP', whyIncluded: 'Tests core hypothesis' }
+                : f
+        )
+    }
+
+    // Transform weekendSpec.pages
+    if (raw.weekendSpec?.pages && Array.isArray(raw.weekendSpec.pages)) {
+        raw.weekendSpec.pages = raw.weekendSpec.pages.map((p: any) =>
+            typeof p === 'string'
+                ? { name: p, purpose: 'Core page for MVP', components: [] }
+                : p
+        )
+    }
+
+    // Transform weekendSpec.endpoints
+    if (raw.weekendSpec?.endpoints && Array.isArray(raw.weekendSpec.endpoints)) {
+        raw.weekendSpec.endpoints = raw.weekendSpec.endpoints.map((e: any) => {
+            if (typeof e === 'string') {
+                const match = e.match(/^(GET|POST|PUT|DELETE|PATCH)\s+(.+)/) || []
+                return {
+                    method: match[1] || 'GET',
+                    path: match[2] || e,
+                    purpose: 'API endpoint for MVP'
+                }
+            }
+            return e
+        })
+    }
+
+    // Transform weekendSpec.thirdPartyServices
+    if (raw.weekendSpec?.thirdPartyServices && Array.isArray(raw.weekendSpec.thirdPartyServices)) {
+        raw.weekendSpec.thirdPartyServices = raw.weekendSpec.thirdPartyServices.map((s: any) =>
+            typeof s === 'string'
+                ? { name: s, purpose: 'Service for MVP', cost: 'Free tier' }
+                : s
+        )
+    }
+
+    // Transform weekendSpec.hourByHourPlan
+    if (raw.weekendSpec?.hourByHourPlan && Array.isArray(raw.weekendSpec.hourByHourPlan)) {
+        raw.weekendSpec.hourByHourPlan = raw.weekendSpec.hourByHourPlan.map((h: any, idx: number) =>
+            typeof h === 'string'
+                ? { hour: `Hour ${idx + 1}`, task: h, deliverable: 'Milestone reached' }
+                : h
+        )
+    }
+
+    // Transform timeToFirstDollar.breakdown
+    if (raw.timeToFirstDollar?.breakdown && Array.isArray(raw.timeToFirstDollar.breakdown)) {
+        raw.timeToFirstDollar.breakdown = raw.timeToFirstDollar.breakdown.map((b: any) =>
+            typeof b === 'string'
+                ? { phase: b, days: 1, description: b }
+                : b
+        )
+    }
+
+    // Transform antiScopeCreepRules
+    if (raw.antiScopeCreepRules && Array.isArray(raw.antiScopeCreepRules)) {
+        raw.antiScopeCreepRules = raw.antiScopeCreepRules.map((r: any) =>
+            typeof r === 'string'
+                ? { rule: r, why: 'Prevents scope creep' }
+                : r
+        )
+    }
+
+    return raw
+}
+
 // ── MVP Scalpel Output Schema ───────────────────────────────────────────────
 
 export const MVPScalpelSchema = z.object({
@@ -252,6 +331,35 @@ const SYSTEM_PROMPT = `
 
 You are a YC-caliber startup advisor with 15 years of experience. You have helped 300+ founders get their first paying customer. You are obsessively specific. You name tools. You write actual scripts. You give exact commands. You never say "relevant communities" — you name the actual subreddits, Slack groups, and LinkedIn hashtags. You never say "set up your tech stack" — you write the exact terminal commands.
 
+## JSON STRUCTURE VALIDATION — CRITICAL
+
+**EVERY array field must contain OBJECTS, never strings.**
+
+Correct format:
+\`\`\`json
+"features": [
+  { "name": "Auth", "description": "User login", "whyIncluded": "Tests core" },
+  { "name": "Dashboard", "description": "Main view", "whyIncluded": "Shows data" }
+]
+\`\`\`
+
+WRONG — This will cause validation failure:
+\`\`\`json
+"features": [ "Auth", "Dashboard" ]  // WRONG — strings not objects
+\`\`\`
+
+Required object structures for each array:
+- killList: { feature, whyItFeelsEssential, whyItKills, whenToBuild, effort }
+- skeletonMVP.features: { name, description, whyIncluded }
+- weekendSpec.pages: { name, purpose, components: [] }
+- weekendSpec.endpoints: { method, path, purpose }
+- weekendSpec.thirdPartyServices: { name, purpose, cost }
+- weekendSpec.hourByHourPlan: { hour, task, deliverable }
+- timeToFirstDollar.breakdown: { phase, days, description }
+- antiScopeCreepRules: { rule, why }
+
+**If you cannot provide object structure for any array, return an empty array [] instead of string values.**
+
 ## Your North Star
 
 THE ONLY GOAL: Money in the founder's bank account within 14 days.
@@ -315,7 +423,10 @@ Study the provided venture context carefully. For EVERY section you output:
 
 ## Output Schema Requirements
 
+**CRITICAL: All arrays must contain OBJECTS, never strings. Validation will fail if you return string arrays.**
+
 **Kill List (5-8 features):**
+Each item MUST be an object: { feature, whyItFeelsEssential, whyItKills, whenToBuild, effort }
 - feature: The specific feature name (not category)
 - whyItFeelsEssential: The psychological trap — why every founder wants this
 - whyItKills: Exact cost in days + what opportunity it kills
@@ -325,25 +436,25 @@ Study the provided venture context carefully. For EVERY section you output:
 **Skeleton MVP (2-4 features MAX — if you list 5+, you failed):**
 - oneLiner: One sentence a 12-year-old understands
 - coreHypothesis: "If [specific target customer] [does specific action], they will pay $[amount] because [specific reason from research pain points]"
-- features: Max 4, each must directly test the hypothesis
-- explicitlyExcluded: At least 8 specific things NOT in the MVP with one-line reason each
+- features: Max 4. MUST be array of objects: { name, description, whyIncluded }. Each must directly test the hypothesis
+- explicitlyExcluded: At least 8 specific strings of things NOT in the MVP with one-line reason each
 - successCriteria: "X paying customers at $Y within Z days" — real numbers
 
 **Weekend Spec (must be ≤ 20 hours total):**
-- techStack: Exact package names, not categories
-- pages: Each page with specific components listed (not "dashboard" — "single table showing X, Y, Z columns, delete button, status badge")
-- endpoints: Exact method + path + what it does in one sentence
-- thirdPartyServices: name + exact use + exact pricing tier
-- hourByHourPlan: Real terminal commands or specific UI steps — no vague descriptions
+- techStack: Exact package names as strings
+- pages: MUST be array of objects { name, purpose, components: [] }. Each page with specific components listed (not "dashboard" — "single table showing X, Y, Z columns, delete button, status badge")
+- endpoints: MUST be array of objects { method, path, purpose }. Exact method + path + what it does in one sentence
+- thirdPartyServices: MUST be array of objects { name, purpose, cost }. name + exact use + exact pricing tier
+- hourByHourPlan: MUST be array of objects { hour, task, deliverable }. Real terminal commands or specific UI steps — no vague descriptions
 - deployTarget: Exact platform + deploy command
 
 **Time to First Dollar:**
 - estimatedDays: Must be ≤ 21 days
-- breakdown: Specific day ranges with concrete actions
+- breakdown: MUST be array of objects { phase, days, description }. Specific day ranges with concrete actions
 - fastestPath: The full outreach script the founder can copy-paste TODAY. Include the exact post/DM/email text.
-- assumptions: What must be true for this timeline to work
+- assumptions: Array of strings: What must be true for this timeline to work
 
-**Anti-Scope-Creep Rules:** Exactly 5 rules, each with an enforcement mechanism.
+**Anti-Scope-Creep Rules:** MUST be array of objects { rule, why }. Exactly 5 rules, each with an enforcement mechanism.
 
 **Verdict:**
 - readiness: ship-now | almost-ready | needs-rethink
@@ -397,7 +508,8 @@ export async function runMVPScalpelAgent(
         const editRun = async () => {
             const fullText = await streamPrompt(model, EDIT_SYSTEM_PROMPT, editUserMessage, onStream)
             const rawPatch = extractJSON(fullText) as MVPScalpelEditPatch
-            const validatedPatch = MVPScalpelEditPatchSchema.parse(rawPatch)
+            const transformedPatch = defensiveTransform(rawPatch)
+            const validatedPatch = MVPScalpelEditPatchSchema.parse(transformedPatch)
             const merged = mergePatch(existingMVP!, validatedPatch)
             const validated = MVPScalpelSchema.parse(merged)
             await onComplete(validated)
@@ -555,7 +667,8 @@ Produce the complete MVPScalpelOutput JSON. Every field must be specific to THIS
 
         const combinedText = isContinuation ? accumulatedText : responseText
         const raw = extractJSON(combinedText)
-        const validated = MVPScalpelSchema.parse(raw)
+        const transformed = defensiveTransform(raw)
+        const validated = MVPScalpelSchema.parse(transformed)
         await onComplete(validated)
     }
 

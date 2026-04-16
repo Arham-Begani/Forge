@@ -68,18 +68,13 @@ export function Navbar() {
         alignItems: 'center',
         padding: '0 2rem',
         animation: 'fade-in-scale 0.5s ease both',
-        background: scrolled
-          ? 'var(--glass-bg-strong)'
-          : 'transparent',
+        background: scrolled ? 'var(--glass-bg-strong)' : 'transparent',
         backdropFilter: scrolled ? 'blur(var(--glass-blur-strong))' : 'none',
         WebkitBackdropFilter: scrolled ? 'blur(var(--glass-blur-strong))' : 'none',
-        borderBottom: scrolled
-          ? '1px solid var(--glass-border)'
-          : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid var(--glass-border)' : '1px solid transparent',
         boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
         transition: 'all var(--transition-smooth)',
       }}>
-        {/* Logo */}
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{
@@ -94,11 +89,13 @@ export function Navbar() {
           }}
         >
           <span style={{
-            fontSize: '22px',
+            fontSize: '12px',
+            fontWeight: 700,
             color: 'var(--accent)',
             lineHeight: 1,
             filter: 'drop-shadow(0 0 8px var(--accent-glow))',
-          }}>⬡</span>
+            fontFamily: 'var(--font-jetbrains-mono), monospace',
+          }}>FZ</span>
           <span style={{
             fontFamily: 'var(--font-dm-sans), sans-serif',
             fontWeight: 700,
@@ -108,7 +105,6 @@ export function Navbar() {
           }}>FORZE</span>
         </button>
 
-        {/* Center nav — desktop */}
         <div style={{
           flex: 1,
           display: 'flex',
@@ -169,7 +165,6 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Right CTAs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }} className="hide-mobile">
           {isLoggedIn ? (
             <button
@@ -190,7 +185,7 @@ export function Navbar() {
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
             >
-              Dashboard →
+              Dashboard {'->'}
             </button>
           ) : (
             <>
@@ -237,13 +232,12 @@ export function Navbar() {
                 onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
                 onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
               >
-                Start Building
+                Start Validating
               </button>
             </>
           )}
         </div>
 
-        {/* Mobile hamburger */}
         <button
           className="show-mobile"
           onClick={() => setMobileOpen(o => !o)}
@@ -259,11 +253,10 @@ export function Navbar() {
             lineHeight: 1,
           }}
         >
-          {mobileOpen ? '✕' : '☰'}
+          {mobileOpen ? 'X' : '≡'}
         </button>
       </nav>
 
-      {/* Mobile menu overlay */}
       {mobileOpen && (
         <div style={{
           position: 'fixed',
@@ -296,7 +289,7 @@ export function Navbar() {
               {link.label}
             </button>
           ))}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '200px', marginTop: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '220px', marginTop: '16px' }}>
             {isLoggedIn ? (
               <button
                 onClick={() => { setMobileOpen(false); router.push('/dashboard') }}
@@ -312,7 +305,7 @@ export function Navbar() {
                   fontFamily: 'var(--font-dm-sans), sans-serif',
                 }}
               >
-                Dashboard →
+                Dashboard {'->'}
               </button>
             ) : (
               <>
@@ -346,7 +339,7 @@ export function Navbar() {
                     fontFamily: 'var(--font-dm-sans), sans-serif',
                   }}
                 >
-                  Start Building
+                  Start Validating
                 </button>
               </>
             )}

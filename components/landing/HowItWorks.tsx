@@ -5,27 +5,27 @@ import { useEffect, useRef, useState } from 'react'
 const STEPS = [
   {
     number: '01',
-    icon: '◉',
+    icon: 'V',
     accent: '#6B8F71',
-    title: 'Describe Your Idea',
-    description: 'One sentence. What problem? Who needs it? Done.',
+    title: 'Describe The Venture',
+    description: 'Give Forze the problem, customer, and angle you want to validate.',
     detail: 'Example: "AI scheduling for insurance agents"',
   },
   {
     number: '02',
-    icon: '⬡',
+    icon: 'P',
     accent: '#C4975A',
-    title: 'Forze Analyzes',
-    description: 'Market potential, competition, unit economics, and GO/NO-GO verdict in 4 minutes.',
-    detail: 'TAM · Competition · Financials · Risk assessment',
+    title: 'Forze Builds The Case',
+    description: 'Research, feasibility, Shadow Board critique, and validation assets are generated as one connected story.',
+    detail: 'TAM · competition · GO/NO-GO · risks · landing test',
   },
   {
     number: '03',
-    icon: '▣',
+    icon: 'M',
     accent: '#8C7A5A',
-    title: 'Copy Everything',
-    description: 'Market research. Brand identity. Landing page. Business plan. All connected and ready to launch.',
-    detail: 'Download or share immediately',
+    title: 'Move With Evidence',
+    description: 'Share the outputs with co-founders, customers, or investors and decide what deserves to be built next.',
+    detail: 'Use the page, memo, deck, and verdict immediately',
   },
 ]
 
@@ -48,7 +48,6 @@ export function HowItWorks() {
       maxWidth: '1100px',
       margin: '0 auto',
     }}>
-      {/* Header */}
       <div style={{
         textAlign: 'center',
         marginBottom: '64px',
@@ -76,28 +75,26 @@ export function HowItWorks() {
           letterSpacing: '-0.02em',
           lineHeight: 1.2,
         }}>
-          From Idea to Market-Ready in 3 Steps
+          From Idea to Validation in 3 Steps
         </h2>
         <p style={{
           fontFamily: 'var(--font-dm-sans), sans-serif',
           fontSize: '17px',
           color: 'var(--text-soft)',
-          maxWidth: '480px',
+          maxWidth: '560px',
           margin: '0 auto',
           lineHeight: 1.6,
         }}>
-          Everything you need to launch is generated in minutes.
+          Forze helps you prove whether the idea deserves execution before you burn months building it.
         </p>
       </div>
 
-      {/* Steps */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '24px',
         position: 'relative',
       }}>
-        {/* Ambient glow blob */}
         <div style={{
           position: 'absolute',
           top: '-60px',
@@ -110,7 +107,6 @@ export function HowItWorks() {
           pointerEvents: 'none',
           zIndex: 0,
         }} />
-        {/* Connecting line (md+ only) */}
         <div className="how-it-works-line" style={{
           position: 'absolute',
           top: '50%',
@@ -125,7 +121,7 @@ export function HowItWorks() {
         }} />
         {STEPS.map((step, i) => (
           <div
-            key={i}
+            key={step.number}
             style={{
               borderRadius: 'var(--radius-xl)',
               background: 'var(--glass-bg)',
@@ -156,7 +152,6 @@ export function HowItWorks() {
               el.style.transform = 'translateY(0)'
             }}
           >
-            {/* Top: number + icon */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{
                 fontFamily: 'var(--font-jetbrains-mono), monospace',
@@ -176,7 +171,8 @@ export function HowItWorks() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '22px',
+                fontSize: '18px',
+                fontWeight: 700,
                 color: step.accent,
                 animation: visible
                   ? `badge-pop 0.5s ${0.2 + i * 0.12}s ease both, float ${3 + i * 0.5}s ease-in-out ${0.4 + i * 0.12}s infinite`
@@ -186,7 +182,6 @@ export function HowItWorks() {
               </div>
             </div>
 
-            {/* Accent line */}
             <div style={{
               height: '2px',
               width: visible ? '40px' : '0px',
@@ -195,7 +190,6 @@ export function HowItWorks() {
               transition: `width 0.6s ${0.3 + i * 0.12}s ease`,
             }} />
 
-            {/* Content */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
               <h3 style={{
                 fontFamily: 'var(--font-dm-sans), sans-serif',

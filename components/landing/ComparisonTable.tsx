@@ -5,17 +5,18 @@ import { useEffect, useRef, useState } from 'react'
 const ROWS = [
   { feature: 'Market Research', forze: true, freelancers: 'weeks', chatbots: 'partial', tools: 'manual' },
   { feature: 'Brand Identity', forze: true, freelancers: 'expensive', chatbots: 'partial', tools: 'manual' },
-  { feature: 'Live Landing Page', forze: true, freelancers: 'weeks', chatbots: false, tools: false },
+  { feature: 'Live Validation Page', forze: true, freelancers: 'weeks', chatbots: false, tools: false },
   { feature: 'Feasibility Study', forze: true, freelancers: 'expensive', chatbots: false, tools: false },
   { feature: 'Go-to-Market Plan', forze: true, freelancers: 'weeks', chatbots: 'partial', tools: false },
   { feature: 'Shadow Board Review', forze: true, freelancers: false, chatbots: false, tools: false },
+  { feature: 'Investor Kit / Data Room', forze: true, freelancers: 'expensive', chatbots: false, tools: false },
   { feature: 'Cross-agent context', forze: true, freelancers: 'manual', chatbots: false, tools: false },
   { feature: 'Financial Projections', forze: true, freelancers: 'expensive', chatbots: false, tools: false },
 ]
 
 const META = [
-  { key: 'time', label: 'Time to complete', forze: '~5 minutes', freelancers: '6–12 weeks', chatbots: 'Hours', tools: 'Days' },
-  { key: 'cost', label: 'Cost', forze: 'From ₹0', freelancers: '₹4L–₹16L', chatbots: '₹1,700/mo', tools: '₹4,000–20K/mo' },
+  { key: 'time', label: 'Time to first answer', forze: '~5 minutes', freelancers: '6-12 weeks', chatbots: 'Hours', tools: 'Days' },
+  { key: 'cost', label: 'Cost', forze: 'From INR 0', freelancers: 'INR 4L-16L', chatbots: 'INR 1,700/mo', tools: 'INR 4,000-20K/mo' },
 ]
 
 type CellValue = boolean | string
@@ -33,7 +34,8 @@ function Cell({ value, isForze, animDelay }: { value: CellValue; isForze?: boole
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '12px',
+          fontSize: '11px',
+          fontWeight: 700,
           color: '#22c55e',
           flexShrink: 0,
           animation: isForze
@@ -60,7 +62,7 @@ function Cell({ value, isForze, animDelay }: { value: CellValue; isForze?: boole
           color: 'var(--muted)',
           flexShrink: 0,
         }}>
-          —
+          -
         </div>
       </div>
     )
@@ -100,13 +102,13 @@ export function ComparisonTable() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Mobile: card-based layout
   if (isMobile) {
     const COLS = [
       { label: 'Freelancers', key: 'freelancers' as const },
       { label: 'AI Chatbots', key: 'chatbots' as const },
       { label: 'Other Tools', key: 'tools' as const },
     ]
+
     return (
       <section id="compare" ref={sectionRef} style={{
         padding: 'clamp(48px, 8vw, 112px) 16px',
@@ -124,21 +126,23 @@ export function ComparisonTable() {
             Compared
           </p>
           <h2 style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 'clamp(24px, 6vw, 44px)', fontWeight: 800, color: 'var(--text)', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
-            5 minutes vs everything else.
+            Validation in minutes vs guesswork everywhere else.
           </h2>
           <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '15px', color: 'var(--text-soft)', margin: '0 auto', lineHeight: 1.6 }}>
-            Forze replaces months of work.
+            Forze compresses the work needed to decide whether an idea deserves execution.
           </p>
         </div>
 
         <div style={{
-          display: 'flex', flexDirection: 'column', gap: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(24px)',
           transition: 'opacity 0.6s 0.15s ease, transform 0.6s 0.15s ease',
         }}>
           {ROWS.map((row, i) => (
-            <div key={i} style={{
+            <div key={row.feature} style={{
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border)',
               background: 'var(--glass-bg)',
@@ -164,15 +168,14 @@ export function ComparisonTable() {
                   }}>
                     <span style={{ fontWeight: 600 }}>{col.label}:</span>
                     {row[col.key] === true ? <span style={{ color: '#22c55e' }}>✓</span> :
-                     row[col.key] === false ? <span>—</span> :
-                     <span>{row[col.key] as string}</span>}
+                      row[col.key] === false ? <span>-</span> :
+                        <span>{row[col.key] as string}</span>}
                   </div>
                 ))}
               </div>
             </div>
           ))}
 
-          {/* Meta cards */}
           {META.map(row => (
             <div key={row.key} style={{
               borderRadius: 'var(--radius-lg)',
@@ -216,7 +219,6 @@ export function ComparisonTable() {
       maxWidth: '1000px',
       margin: '0 auto',
     }}>
-      {/* Header */}
       <div style={{
         textAlign: 'center',
         marginBottom: '56px',
@@ -228,14 +230,13 @@ export function ComparisonTable() {
           Why Forze
         </p>
         <h2 style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, color: 'var(--text)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
-          Everything else is a fragment.
+          Most tools help you make things. Forze helps you decide.
         </h2>
-        <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '17px', color: 'var(--text-soft)', maxWidth: '440px', margin: '0 auto', lineHeight: 1.6 }}>
-          Forze is the whole picture.
+        <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: '17px', color: 'var(--text-soft)', maxWidth: '560px', margin: '0 auto', lineHeight: 1.6 }}>
+          The difference is not just speed. It is having research, risk, market proof, and investor narrative in one system.
         </p>
       </div>
 
-      {/* Table */}
       <div style={{
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--border)',
@@ -245,7 +246,6 @@ export function ComparisonTable() {
         transform: visible ? 'translateY(0)' : 'translateY(24px)',
         transition: 'opacity 0.6s 0.15s ease, transform 0.6s 0.15s ease',
       }}>
-        {/* Header row */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr',
@@ -300,14 +300,12 @@ export function ComparisonTable() {
           ))}
         </div>
 
-        {/* Feature rows */}
         {ROWS.map((row, i) => (
-          <div key={i} style={{
+          <div key={row.feature} style={{
             display: 'grid',
             gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr',
             borderBottom: '1px solid var(--border)',
             background: i % 2 === 0 ? 'transparent' : 'hsla(0,0%,0%,0.015)',
-            transition: 'background var(--transition-fast)',
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateX(0)' : 'translateX(-12px)',
             transitionDelay: `${0.2 + i * 0.04}s`,
@@ -333,7 +331,6 @@ export function ComparisonTable() {
           </div>
         ))}
 
-        {/* Meta rows */}
         {META.map((row, i) => (
           <div key={row.key} style={{
             display: 'grid',

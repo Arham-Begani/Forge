@@ -52,10 +52,10 @@ export default function PricingPage() {
                 margin: '10px 0 12px',
               }}
             >
-              India-first pricing for founder velocity
+              India-first pricing for idea validation and launch
             </h1>
             <p style={{ maxWidth: 720, margin: 0, fontSize: 16, color: 'var(--text-soft)', lineHeight: 1.7 }}>
-              Every module. Every plan. Just credits. Pick the plan that fits your pace.
+              Every plan includes every module. Choose the credit volume that matches how many ideas you want to validate, rerun, and package.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

@@ -5,27 +5,31 @@ import { useEffect, useRef, useState } from 'react'
 const FAQS = [
   {
     q: 'How is Forze different from ChatGPT?',
-    a: 'ChatGPT is a single generalist model. Forze is a coordinated swarm of 9 specialized agents that share context with each other. Your branding agent knows what the research agent found. Your landing page uses the brand voice the identity agent defined. ChatGPT gives you fragments. Forze gives you a coherent venture package.',
+    a: 'ChatGPT gives you disconnected answers. Forze gives you a connected validation system. Research informs branding, branding informs the landing page, feasibility stress-tests the thesis, Shadow Board attacks your assumptions, and Investor Kit packages the case. The value is the continuity, not just the text generation.',
   },
   {
     q: 'Do I need technical skills to use Forze?',
-    a: 'None. You describe your idea in plain English. Forze handles everything else — market research, brand naming, landing page generation, financial modeling. If you can send an email, you can use Forze.',
+    a: 'None. You describe your idea in plain English. Forze handles the research, positioning, validation page, feasibility modeling, and investor materials. If you can explain the problem clearly, you can use Forze.',
   },
   {
     q: 'How long does a Full Launch actually take?',
-    a: 'Typically 3–7 minutes depending on the complexity of your idea and current model latency. Research, branding, landing page generation, and feasibility analysis all run in parallel as a coordinated agent team.',
+    a: 'Typically 3-7 minutes depending on idea complexity and model latency. Research, branding, landing page generation, and feasibility analysis run together, so you get a usable validation package in one pass instead of stitching outputs together manually.',
   },
   {
     q: 'Can I edit the outputs?',
-    a: 'Yes. Every agent supports edit mode — describe what you want changed, and only the relevant fields are regenerated. A headline tweak uses ~200 tokens instead of regenerating the entire landing page. Your data is preserved between runs.',
+    a: 'Yes. Every agent supports edit mode. Ask for the specific change you want and Forze updates only the relevant fields instead of regenerating everything. That makes it practical to tighten a thesis, rerun positioning, or refine a landing page without losing context.',
   },
   {
     q: 'What does the Shadow Board actually do?',
-    a: 'Three AI personas — a Silicon Skeptic, UX Evangelist, and Growth Alchemist — simulate a high-stakes board review of your venture. They\'ll question your CAC assumptions, flag onboarding risks, and challenge your moat. You get a Venture Survival Score (0–100), 3 strategic pivot recommendations, and 5 synthetic user interviews.',
+    a: 'Three AI personas - a Silicon Skeptic, UX Evangelist, and Growth Alchemist - simulate a hard board review of your venture. They challenge CAC assumptions, onboarding risk, and strategic weakness so you find the cracks early. You get a Venture Survival Score, pivot recommendations, and synthetic user feedback.',
   },
   {
-    q: 'How accurate is the feasibility analysis?',
-    a: 'The Genesis Engine pulls real-time market data, competitor information, and industry benchmarks. The Feasibility agent uses extended thinking to stress-test financial assumptions across 12 risk vectors. Results are directionally accurate — treat them as informed analysis, not audited accounts.',
+    q: 'How should I use the feasibility analysis?',
+    a: 'Use it as a high-quality decision tool, not audited finance. Forze combines market context, competitor information, and structured assumption testing to tell you whether the idea looks investable, fragile, or worth changing. It is strongest as a way to decide what to test next and what to stop believing too early.',
+  },
+  {
+    q: 'Is the Investor Kit based on the real venture outputs?',
+    a: 'Yes. Investor Kit is not a generic deck generator. It pulls from the venture research, feasibility findings, brand context, and launch materials already produced inside Forze, then turns that into a coherent memo, deck outline, ask details, and data room summary.',
   },
   {
     q: 'What are credits and how do they work?',
@@ -33,7 +37,7 @@ const FAQS = [
   },
   {
     q: 'What happens to my venture data?',
-    a: 'Your data is stored securely in your account and never shared with other users or used to train models. You own your outputs. Delete your account at any time to remove all data.',
+    a: 'Your data is stored securely in your account and is not shared with other users. You own the outputs, including the research, landing page assets, and investor materials generated from your venture. Delete your account at any time to remove the data.',
   },
 ]
 
@@ -57,7 +61,6 @@ export function FAQ() {
       maxWidth: '760px',
       margin: '0 auto',
     }}>
-      {/* Header */}
       <div style={{
         textAlign: 'center',
         marginBottom: '56px',
@@ -73,7 +76,6 @@ export function FAQ() {
         </h2>
       </div>
 
-      {/* Accordion */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -83,7 +85,7 @@ export function FAQ() {
           const isOpen = openIdx === i
           return (
             <div
-              key={i}
+              key={faq.q}
               style={{
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--border)',

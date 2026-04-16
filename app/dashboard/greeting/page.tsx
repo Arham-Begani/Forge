@@ -139,7 +139,7 @@ function GreetingContent() {
         <div style={headerWrap}>
           <div style={logoHex} />
           <div style={{ textAlign: 'center' }}>
-            <h1 style={titleStyle}>Describe your vision</h1>
+            <h1 style={titleStyle}>Describe what you want to validate</h1>
           </div>
         </div>
       </div>
@@ -163,7 +163,7 @@ function GreetingContent() {
           />
           <div style={{ textAlign: 'center' }}>
             <h1 style={titleStyle}>
-              Describe your vision
+              Describe what you want to validate
             </h1>
             {projectName && (
               <motion.p
@@ -216,7 +216,7 @@ function GreetingContent() {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe your startup idea in detail — the problem it solves, who it's for, and what makes it unique..."
+              placeholder="Describe the startup idea, customer, and core assumption you want Forze to validate..."
               style={textareaStyle}
               rows={5}
               maxLength={2000}
@@ -356,7 +356,7 @@ function GreetingContent() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                         </svg>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>Initialize</span>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>Start Validation</span>
                       </>
                     )}
                   </motion.button>
@@ -371,7 +371,7 @@ function GreetingContent() {
             animate={{ opacity: 0.5 }}
             transition={{ delay: 0.8 }}
           >
-            Press <kbd style={kbdStyle}>Ctrl</kbd> + <kbd style={kbdStyle}>Enter</kbd> to initialize your vision
+            Press <kbd style={kbdStyle}>Ctrl</kbd> + <kbd style={kbdStyle}>Enter</kbd> to start your validation run
           </motion.p>
         </motion.div>
 
@@ -386,9 +386,9 @@ function GreetingContent() {
           }}
         >
           {[
-            { icon: '◎', label: 'Market Research', desc: 'Real-time data' },
-            { icon: '◇', label: 'Brand Identity', desc: 'Full brand bible' },
-            { icon: '▣', label: 'Landing Page', desc: 'Live deployment' },
+            { icon: '◎', label: 'Market Research', desc: 'Demand and competition' },
+            { icon: '◇', label: 'Brand Identity', desc: 'Positioning that fits' },
+            { icon: '▣', label: 'Landing Page', desc: 'Live validation page' },
             { icon: '◈', label: 'Feasibility', desc: 'GO/NO-GO verdict' },
           ].map(f => (
             <motion.div
