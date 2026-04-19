@@ -8,8 +8,16 @@ This file is the Agent's memory between sessions.
 ---
 
 ## Current Status
-**Phase:** 11 — Co-pilot + Timeline + Investor Kit
-**Last updated:** March 14, 2026
+**Phase:** 13 — Auto-GTM Layer + Sidebar Redesign
+**Last updated:** April 19, 2026
+
+### Latest Session (April 19 2026)
+- Added Campaigns as a full sidebar module + venture tab (shared `VentureHeader`, `?tab=` deep link, Suspense boundary for `useSearchParams`). Fixed `/api/ventures/[id]` response-shape bug and cross-venture URL-tamper guard on the detail page. Switched `CampaignDetail` auto-poll from `POST /poll-replies` to `GET` (cheap read path). Hoisted `const sendInput = input.data` in `app/api/campaigns/[id]/send/route.ts` so nested closures carry the narrowed Zod type.
+- Fixed RLS violation on `createCampaign` — migration `015_campaign_rls.sql` enables RLS and adds policies for `campaigns`, `campaign_leads`, `campaign_analytics`, `campaign_replies`, `gmail_integrations`, `rate_limit_events` matching the `009_marketing_automation.sql` pattern (direct-owned rows gate on `auth.uid() = <owner>`, child rows gate via `EXISTS` on the parent campaign).
+
+### Previous Session (April 18 2026)
+- Built complete Auto-GTM Layer MVP (20 files): DB migration `013_auto_gtm.sql`, Zod schemas, campaign query helpers, Gmail OAuth (`lib/gmail-oauth.ts`), Gmail sender (`lib/gmail-sender.ts`), Gemini email generator (`lib/email-generator.ts`), email utilities, 8 API routes under `/api/campaigns/`, `/api/track/`, `/api/integrations/gmail/`, and 3 UI components + 2 pages for campaign management
+- Rewrote `app/dashboard/layout.tsx` sidebar: replaced cramped 272px tree (11.5px text, 26px rows) with two-column design — 52px left rail (project icons + dark mode + user avatar) + 220px right panel (venture picker dropdown + 36px module rows with 13px text). Sidebar collapses to 52px left rail only. Removed ~430 lines of dead code (expandedProjects/Ventures state, toggleProject/toggleVenture, rename/delete inline forms, old localStorage effects).
 
 ---
 
@@ -410,3 +418,36 @@ This file is the Agent's memory between sessions.
 - ✅ All 82 routes verified in build output
 **Broken:** None. Platform fully operational.
 **Status:** ✅ Deployment ready — no errors remaining.
+
+### Day 20 — April 18, 2026
+**Goal:** Build complete Auto-GTM Layer MVP (Phase 1).
+**Built:**
+- **DB Migration:** `db/migrations/013_auto_gtm.sql` — 5 new tables: campaigns, campaign_leads, gmail_integrations, campaign_analytics, campaign_replies with enums, foreign keys, and indexes.
+- **Zod Schemas:** `lib/schemas/campaign.ts` — full type-safe schemas for all models + input validators (CampaignSchema, CampaignLeadSchema, GmailIntegrationSchema, CampaignReplySchema, CreateCampaignSchema, SendCampaignSchema, UploadLeadsSchema, GenerateEmailSchema).
+- **Campaign Queries:** `lib/queries/campaign-queries.ts` — 20+ typed query helpers for CRUD, lead management, analytics, and replies.
+- **Gmail OAuth:** `lib/gmail-oauth.ts` — Google OAuth flow with encrypted token storage (reuses existing AES-256 crypto), auto-refresh, disconnect, status check.
+- **Gmail Sender:** `lib/gmail-sender.ts` — sends emails via Gmail REST API (RFC 2822, base64url), polls inbox for replies by matching lead emails.
+- **Email Generator:** `lib/email-generator.ts` — Gemini-powered cold email generation with {{firstName}}/{{company}}/{{jobTitle}} templating + reply analysis (type + sentiment + summary).
+- **Email Utils:** `lib/email-utils.ts` — validateEmail, normalizeEmail, personalizeTemplate, addTrackingPixel, rewriteLinksForTracking, buildUnsubscribeFooter (CAN-SPAM compliant).
+- **Tracking Routes:** `app/api/track/pixel/[...slug]/route.ts` (1x1 GIF, marks opens) + `app/api/track/click/[...slug]/route.ts` (marks clicks, open-redirect safe).
+- **Campaign API:** `app/api/campaigns/route.ts` (GET list, POST create) + `app/api/campaigns/[id]/route.ts` (GET, PATCH, DELETE).
+- **Lead Upload:** `app/api/campaigns/[id]/leads/route.ts` — validates, normalizes, deduplicates emails.
+- **Email Generation API:** `app/api/campaigns/[id]/generate-email/route.ts` — calls Gemini, saves to campaign.
+- **Send Route:** `app/api/campaigns/[id]/send/route.ts` — personalizes, adds pixel + tracking links + unsubscribe footer, sends via Gmail API.
+- **Poll Replies:** `app/api/campaigns/[id]/poll-replies/route.ts` — polls Gmail, deduplicates, calls Gemini for sentiment analysis, creates reply records.
+- **Analytics:** `app/api/campaigns/[id]/analytics/route.ts` — metrics, lead status breakdown, engagement timeline.
+- **Gmail Integration Routes:** `app/api/integrations/gmail/route.ts` + `callback/route.ts` — OAuth connect/disconnect/status/callback.
+- **UI Components:** `components/venture/CampaignList.tsx` (table with stats), `CampaignDetail.tsx` (metrics + leads + replies tabs), `CreateCampaignFlow.tsx` (5-step wizard: name → data source → CSV upload → AI email → send).
+- **Pages:** `app/dashboard/venture/[id]/campaigns/page.tsx` + `campaigns/[campaignId]/page.tsx`.
+**Verification:** `npx tsc --noEmit` → 0 errors. `npm run build` → successful (84 routes).
+**Broken:** None. All existing features preserved.
+**Next:** Run `013_auto_gtm.sql` migration in Supabase console. Set `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` env vars. Test Gmail OAuth connect flow.
+
+### Day 21 — April 19, 2026
+**Goal:** Codebase quality audit — begin surgical remediation of Auto-GTM issues (audit prioritized 10 items covering UI/UX, backend, security, performance).
+**Built:**
+- **Fix #1 (CAN-SPAM compliance):** Created `app/api/track/unsubscribe/[...slug]/route.ts`. Every email sent by the platform includes an unsubscribe link (via `buildUnsubscribeFooter` in `lib/email-utils.ts`) and the `List-Unsubscribe-Post: List-Unsubscribe=One-Click` header (via `lib/gmail-sender.ts`), but the route itself was never implemented — every unsubscribe click was a 404. The new route handles both `GET` (user-facing confirmation page styled in Forze warm tones) and `POST` (RFC 8058 one-click unsubscribe, returns 204). Both paths are idempotent: they skip the counter bump if the lead is already `unsubscribed`, and DB failures are swallowed so the recipient always sees a success response.
+**Verification:** `npx tsc --noEmit` → 0 errors.
+**Broken:** None.
+**Known gaps from audit (next up):** OAuth `state` CSRF hardening (#2), missing `increment_campaign_metric` / `increment_gmail_daily_count` RPCs (#3), serial loop in `/send` (#4), rate limiting + prompt-injection hardening on `/generate-email` (#5, #6), HTML escaping in `personalizeEmail` (#7), atomic analytics upsert (#8), `getCampaignForUser` helper to collapse 2-query auth into 1 (#9), remove auto-`/poll-replies` on CampaignDetail mount (#10).
+**Note:** `gmail-sender.ts` emits `List-Unsubscribe-Post` but no matching `List-Unsubscribe: <url>` header. Mailbox providers need both. Will address when hardening email headers.
