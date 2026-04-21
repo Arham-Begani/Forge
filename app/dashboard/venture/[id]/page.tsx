@@ -1,4 +1,5 @@
 // app/dashboard/venture/[id]/page.tsx
+import { Suspense } from 'react'
 import { requireAuth } from '@/lib/auth'
 import { getVenture } from '@/lib/queries'
 import { VentureDashboard } from '@/components/venture/VentureDashboard'
@@ -20,5 +21,9 @@ export default async function Page({
     const venture = await getVenture(id, session.userId)
     if (!venture) notFound()
 
-    return <VentureDashboard venture={venture as any} />
+    return (
+        <Suspense fallback={null}>
+            <VentureDashboard venture={venture as any} />
+        </Suspense>
+    )
 }

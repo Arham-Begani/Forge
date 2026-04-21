@@ -4,6 +4,109 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// ─── Smart emoji picker ────────────────────────────────────────────────────���──
+function pickEmojiForIdea(idea: string): string {
+  const t = idea.toLowerCase()
+  const rules: [string[], string][] = [
+    // AI / ML
+    [['artificial intelligence', 'machine learning', 'deep learning', 'llm', 'large language', 'neural network', 'gpt', 'generative ai', ' ai '], '🤖'],
+    // Blockchain / crypto
+    [['blockchain', 'crypto', 'bitcoin', 'ethereum', 'web3', 'nft', 'defi', 'token', 'wallet', 'dao'], '⛓️'],
+    // Cybersecurity
+    [['security', 'cybersecurity', 'encryption', 'privacy', 'firewall', 'authentication', 'zero-trust', 'compliance'], '🔒'],
+    // Data / analytics
+    [['analytics', 'data pipeline', 'business intelligence', 'dashboard', 'reporting', 'visualization', 'big data', 'data science'], '📊'],
+    // Cloud / infra
+    [['cloud', 'infrastructure', 'devops', 'kubernetes', 'serverless', 'microservices', 'hosting', 'deployment'], '☁️'],
+    // Developer tools
+    [['developer', 'developer tool', 'code', 'coding', 'api', 'sdk', 'open source', 'github', 'ci/cd', 'programming'], '💻'],
+    // SaaS / platform (generic — keep late so specific categories win first)
+    // Food / dining
+    [['food', 'restaurant', 'meal', 'recipe', 'cooking', 'nutrition', 'chef', 'catering', 'grocery', 'dining', 'kitchen', 'menu', 'delivery food'], '🍕'],
+    // Fitness / sports
+    [['fitness', 'gym', 'workout', 'exercise', 'sport', 'athlete', 'training', 'running', 'cycling', 'triathlon'], '💪'],
+    // Mental health / wellness
+    [['mental health', 'mindfulness', 'meditation', 'stress', 'anxiety', 'therapy', 'counseling', 'burnout', 'wellbeing'], '🧠'],
+    // Healthcare
+    [['health', 'medical', 'doctor', 'hospital', 'patient', 'telemedicine', 'clinic', 'pharma', 'biotech', 'genomics', 'drug', 'diagnostic'], '🏥'],
+    // Travel
+    [['travel', 'flight', 'hotel', 'tourism', 'trip', 'vacation', 'itinerary', 'booking', 'backpacking', 'hostel'], '✈️'],
+    // Fashion
+    [['fashion', 'clothing', 'apparel', 'style', 'outfit', 'wardrobe', 'textile', 'garment', 'luxury fashion'], '👗'],
+    // Beauty / cosmetics
+    [['beauty', 'cosmetics', 'skincare', 'makeup', 'salon', 'spa', 'haircare', 'grooming product'], '💄'],
+    // Pets
+    [['pet', 'dog', 'cat', 'animal', 'veterinary', 'grooming', 'paw', 'shelter'], '🐾'],
+    // Parenting / kids
+    [['kids', 'children', 'parenting', 'baby', 'childcare', 'toddler', 'school-age', 'toy'], '👶'],
+    // Gaming
+    [['gaming', ' game', 'esports', 'video game', 'gamer', 'virtual reality', ' vr ', ' ar ', 'metaverse', 'augmented reality'], '🎮'],
+    // Music
+    [['music', 'audio', 'podcast', 'artist', 'band', 'concert', 'song', 'playlist', 'studio', 'streaming music'], '🎵'],
+    // Video / film / content
+    [['video', 'film', 'movie', 'content creator', 'youtube', 'tiktok', 'streaming', 'broadcast', 'media production'], '🎬'],
+    // Photography / creative visuals
+    [['photography', 'photo', 'camera', 'image editing', 'visual', 'stock photo'], '📷'],
+    // Art / design
+    [['art', 'illustration', 'graphic design', 'creative agency', 'motion design', 'ui/ux', 'product design'], '🎨'],
+    // Finance / fintech
+    [['finance', 'banking', 'investment', 'fintech', 'payment', 'lending', 'loan', 'insurance', 'wealth management', 'trading', 'stock', 'hedge', 'capital', 'micro-finance'], '💰'],
+    // E-commerce / marketplace
+    [['ecommerce', 'e-commerce', 'marketplace', 'retail', 'shopping', 'storefront', 'seller', 'buyer', 'online store', 'dropship'], '🛒'],
+    // Real estate
+    [['real estate', 'property', 'housing', 'rent', 'mortgage', 'home buying', 'apartment', 'landlord', 'proptech'], '🏠'],
+    // Legal
+    [['legal', 'law', 'attorney', 'contract', 'compliance', 'regulation', 'legaltech', 'lawyer', 'court'], '⚖️'],
+    // HR / recruiting
+    [['hiring', 'recruitment', 'talent', 'hr platform', 'jobs board', 'resume', 'workforce', 'employee', 'onboarding'], '👔'],
+    // Education
+    [['education', 'e-learning', 'course', 'tutoring', 'student', 'school', 'university', 'edtech', 'upskilling', 'certification'], '📚'],
+    // Language / translation
+    [['language', 'translation', 'linguistics', 'foreign language', 'multilingual', 'interpreter'], '🌐'],
+    // Sustainability / green
+    [['sustainability', 'environment', 'climate', 'carbon', 'renewable', 'clean energy', 'solar', 'eco-friendly', 'circular economy', 'net zero'], '🌱'],
+    // Agriculture
+    [['agriculture', 'farming', 'crop', 'agritech', 'farm management', 'harvest', 'irrigation', 'vertical farm'], '🌾'],
+    // Logistics / delivery / supply chain
+    [['logistics', 'delivery', 'supply chain', 'shipping', 'courier', 'last-mile', 'warehouse', 'fulfillment', 'trucking'], '📦'],
+    // Automotive / mobility
+    [['automotive', 'car', 'vehicle', 'ride-sharing', 'mobility', 'fleet', 'electric vehicle', ' ev ', 'autonomous vehicle', 'car rental'], '🚗'],
+    // Space / aerospace
+    [['space', 'satellite', 'aerospace', 'rocket', 'orbit', 'nasa', 'space tourism', 'launch vehicle'], '🚀'],
+    // Science / research / biotech
+    [['science', 'research', 'laboratory', 'biotech', 'genomics', 'drug discovery', 'clinical trial', 'lab automation'], '🔬'],
+    // Social / community
+    [['social network', 'community', 'forum', 'peer-to-peer', 'collaboration', 'co-working', 'online community'], '👥'],
+    // Non-profit / impact
+    [['nonprofit', 'charity', 'social impact', 'humanitarian', 'volunteering', 'donation', 'ngo', 'fundraising'], '❤️'],
+    // Communication / messaging
+    [['communication', 'messaging', 'chat', 'notification', 'crm', 'email marketing', 'sms'], '💬'],
+    // News / media / content
+    [['newsletter', 'blog', 'journalism', 'publishing', 'news aggregator', 'content marketing', 'media'], '📰'],
+    // Productivity / workflow
+    [['productivity', 'workflow', 'automation', 'task management', 'project management', 'efficiency', 'no-code', 'low-code'], '⚡'],
+    // B2B / sales / CRM
+    [['crm', 'sales tool', 'b2b', 'enterprise software', 'saas', 'revenue operations', 'lead generation', 'sales automation'], '📈'],
+    // Events / ticketing
+    [['event', 'ticketing', 'conference', 'webinar', 'festival', 'booking event', 'venue'], '🎟️'],
+    // Smart home / IoT
+    [['smart home', 'iot', 'internet of things', 'home automation', 'connected device', 'sensor', 'wearable'], '🏡'],
+    // Construction / architecture
+    [['construction', 'architecture', 'building', 'contractor', 'renovation', 'interior design', 'bim'], '🏗️'],
+    // Sports tech
+    [['sports analytics', 'fantasy sports', 'sports betting', 'athlete performance', 'sports management'], '⚽'],
+  ]
+
+  for (const [keywords, emoji] of rules) {
+    if (keywords.some(kw => t.includes(kw))) return emoji
+  }
+
+  // Deterministic fallback based on text content
+  const fallbacks = ['⚡', '💡', '🌟', '🔮', '🎯', '🌊', '🦋', '🔑', '💎', '🌈', '🏆', '🧩']
+  const hash = idea.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  return fallbacks[hash % fallbacks.length]
+}
+
 const SUGGESTIONS = [
   'An AI-powered meal planning app for busy professionals',
   'A marketplace connecting local farmers with restaurants',
@@ -69,12 +172,12 @@ function GreetingContent() {
       const res = await fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ global_idea: idea.trim() }),
+        body: JSON.stringify({ global_idea: idea.trim(), icon: pickEmojiForIdea(idea.trim()) }),
       })
 
       if (res.ok) {
         window.dispatchEvent(new CustomEvent('Forze:project-updated', {
-          detail: { projectId, global_idea: idea.trim() }
+          detail: { projectId, global_idea: idea.trim(), icon: pickEmojiForIdea(idea.trim()) }
         }))
 
         try {
